@@ -1,0 +1,6 @@
+[package]
+name = "smartcrop"
+version = "0.1.0"
+authors = ["Aleksey Bekh-Ivanov <6ex@mail.ru>"]
+
+[dependencies]
