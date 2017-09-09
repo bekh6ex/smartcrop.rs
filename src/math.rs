@@ -6,26 +6,65 @@ const edgeWeight: f64 = -20.0;
 const ruleOfThirds: bool = true;
 
 
-trait Color {
-    fn RGB(&self) -> (f64, f64, f64);
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct RGB {
+    pub r:f64,
+    pub g:f64,
+    pub b:f64
 }
+
+impl RGB {
+    pub fn new(r: u8, g:u8, b:u8) -> RGB {
+        RGB{r: r as f64, g: g as f64, b: b as f64}
+    }
+}
+
+
+
 
 
 // Score contains values that classify matches
-struct Score {
-    Detail: f64,
-    Saturation: f64,
-    Skin: f64,
-    Total: f64
+#[derive(Clone, PartialEq, Debug)]
+pub struct Score {
+    pub Detail: f64,
+    pub Saturation: f64,
+    pub Skin: f64,
+    pub Total: f64
 }
 
 // Crop contains results
-struct Crop {
-    X: u32,
-    Y: u32,
-    Width: u32,
-    Height: u32,
-    Score: Score
+#[derive(Clone, PartialEq, Debug)]
+pub struct Crop {
+    pub X: u32,
+    pub Y: u32,
+    pub Width: u32,
+    pub Height: u32,
+}
+
+impl Crop {
+    pub fn scale(&self, ratio: f64) -> Crop {
+        Crop {
+            X: (self.X as f64 * ratio) as u32,
+            Y: (self.Y as f64 * ratio) as u32,
+            Width: (self.Width as f64 * ratio) as u32,
+            Height: (self.Height as f64 * ratio) as u32
+        }
+    }
+}
+
+pub struct ScoredCrop {
+    pub crop: Crop,
+    pub score: Score
+}
+
+impl ScoredCrop {
+    pub fn scale(&self, ratio: f64) -> ScoredCrop {
+        ScoredCrop {
+            crop: self.crop.scale(ratio),
+            score: self.score.clone()
+        }
+
+    }
 }
 
 pub fn chop(x: f64) -> f64 {
@@ -43,34 +82,28 @@ fn thirds(x: f64) -> f64 {
     return f64::max(1.0 - x * x, 0.0);
 }
 
-fn bounds(l: f64) -> f64 {
+pub fn bounds(l: f64) -> f64 {
     f64::min(f64::max(l, 0.0), 255.0)
 }
 
-fn cie(c: &Color) -> f64 {
-    let (r, g, b) = c.RGB();
-
-    0.5126 * b + 0.7152 * g + 0.0722 * r
+pub fn cie(c: RGB) -> f64 {
+    0.5126 * c.b + 0.7152 * c.g + 0.0722 * c.r
 }
 
-fn skinCol(c: &Color) -> f64 {
-    let (r, g, b) = c.RGB();
-
-    let mag = (r * r + g * g + b * b).sqrt();
-    let rd = r / mag - skinColor[0];
-    let gd = g / mag - skinColor[1];
-    let bd = b / mag - skinColor[2];
+pub fn skinCol(c: RGB) -> f64 {
+    let mag = (c.r * c.r + c.g * c.g + c.b * c.b).sqrt();
+    let rd = c.r / mag - skinColor[0];
+    let gd = c.g / mag - skinColor[1];
+    let bd = c.b / mag - skinColor[2];
 
     let d = (rd * rd + gd * gd + bd * bd).sqrt();
 
     1.0 - d
 }
 
-fn saturation(c: &Color) -> f64 {
-    let (r, g, b) = c.RGB();
-
-    let maximum = f64::max(f64::max(r / 255.0, g / 255.0), b / 255.0);
-    let minimum = f64::min(f64::min(r / 255.0, g / 255.0), b / 255.0);
+pub fn saturation(c: RGB) -> f64 {
+    let maximum = f64::max(f64::max(c.r / 255.0, c.g / 255.0), c.b / 255.0);
+    let minimum = f64::min(f64::min(c.r / 255.0, c.g / 255.0), c.b / 255.0);
 
 
     if maximum == minimum {
@@ -87,7 +120,7 @@ fn saturation(c: &Color) -> f64 {
     }
 }
 
-fn importance(crop: &Crop, x: u32, y: u32) -> f64 {
+pub fn importance(crop: &Crop, x: u32, y: u32) -> f64 {
     if (crop.X > x || x >= crop.X + crop.Width || crop.Y > y || y >= crop.Y + crop.Height) {
         return outsideImportance;
     }
@@ -114,20 +147,8 @@ fn importance(crop: &Crop, x: u32, y: u32) -> f64 {
 mod tests {
     use super::*;
 
-    struct Gray(u8);
-
-    impl Color for Gray {
-        fn RGB(&self) -> (f64, f64, f64) {
-            (self.0 as f64, self.0 as f64, self.0 as f64)
-        }
-    }
-
-    struct RGB(u8, u8, u8);
-
-    impl Color for RGB {
-        fn RGB(&self) -> (f64, f64, f64) {
-            (self.0 as f64, self.1 as f64, self.2 as f64)
-        }
+    fn gray(c: u8) -> RGB {
+        RGB::new(c, c, c)
     }
 
     #[test]
@@ -152,24 +173,24 @@ mod tests {
 
     #[test]
     fn cie_test() {
-        assert_eq!(0.0, cie(&Gray(0)));
-        assert_eq!(331.49999999999994, cie(&Gray(255)));
+        assert_eq!(0.0, cie(gray(0)));
+        assert_eq!(331.49999999999994, cie(gray(255)));
     }
 
     #[test]
     fn skinCol_test() {
-        assert!(skinCol(&Gray(0)).is_nan());
-        assert_eq!(0.7550795306611965, skinCol(&Gray(255)));
+        assert!(skinCol(gray(0)).is_nan());
+        assert_eq!(0.7550795306611965, skinCol(gray(255)));
     }
 
     #[test]
     fn saturation_tests() {
-        assert_eq!(0.0, saturation(&Gray(0)));
-        assert_eq!(0.0, saturation(&Gray(255)));
-        assert_eq!(1.0, saturation(&RGB(255, 0, 0)));
-        assert_eq!(1.0, saturation(&RGB(0, 255, 0)));
-        assert_eq!(1.0, saturation(&RGB(0, 0, 255)));
-        assert_eq!(1.0, saturation(&RGB(0, 255, 255)));
+        assert_eq!(0.0, saturation(gray(0)));
+        assert_eq!(0.0, saturation(gray(255)));
+        assert_eq!(1.0, saturation(RGB::new(255, 0, 0)));
+        assert_eq!(1.0, saturation(RGB::new(0, 255, 0)));
+        assert_eq!(1.0, saturation(RGB::new(0, 0, 255)));
+        assert_eq!(1.0, saturation(RGB::new(0, 255, 255)));
     }
 
     #[test]
@@ -177,10 +198,32 @@ mod tests {
         assert_eq!(
             -6.404213562373096,
             importance(
-                &Crop { X: 0, Y: 0, Width: 1, Height: 1,
-                    Score: Score { Detail: 1.0, Saturation: 2.0, Skin: 3.0, Total: 6.0 } },
+                &Crop { X: 0, Y: 0, Width: 1, Height: 1 },
                 0,
                 0)
         );
     }
+
+    #[test]
+    fn crop_scale_test() {
+        let crop = Crop{
+            X:2,
+            Y:4,
+            Width:8,
+            Height:16
+        };
+
+        let scaled_crop = crop.scale(0.5);
+
+        assert_eq!(1, scaled_crop.X);
+        assert_eq!(2, scaled_crop.Y);
+        assert_eq!(4, scaled_crop.Width);
+        assert_eq!(8, scaled_crop.Height);
+    }
+
+
+    fn any_score() -> Score {
+        Score { Detail: 1.0, Saturation: 2.0, Skin: 3.0, Total: 6.0 }
+    }
+
 }
