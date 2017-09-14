@@ -52,6 +52,7 @@ impl Crop {
     }
 }
 
+#[derive(Debug)]
 pub struct ScoredCrop {
     pub crop: Crop,
     pub score: Score

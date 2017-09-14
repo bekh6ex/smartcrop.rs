@@ -62,7 +62,11 @@ impl ImageMap {
     }
 
     fn get(&self, x: u32, y: u32) -> RGB {
-        self.pixels[x as usize][y as usize]
+        self.pixels.get(x as usize)
+            .expect("X")
+            .get(y as usize)
+            .unwrap().clone()
+//        self.pixels[x as usize][y as usize]
     }
 }
 
@@ -71,6 +75,12 @@ trait Analyzer {
 }
 
 struct CropSettings {}
+
+impl CropSettings {
+    fn default() -> CropSettings {
+        CropSettings{}
+    }
+}
 
 struct BasicAnalyzer {
     crop_settings: CropSettings
@@ -127,8 +137,13 @@ fn analyse(cs: &CropSettings, img: &Image, cropWidth: u32, cropHeight: u32, real
 
     //TODO check if crops can return empty vector
     let cs: Vec<Crop> = crops(&o, cropWidth, cropHeight, realMinScale);
+    println!("{:?}", &cs);
     let topCrop: Option<ScoredCrop> = cs.iter()
-                                        .map(|crop| ScoredCrop { crop: crop.clone(), score: score(&o, &crop) })
+                                        .map(|crop| {
+                                            let crop = ScoredCrop { crop: crop.clone(), score: score(&o, &crop) };
+                                            println!("{:?}", &crop);
+                                            crop
+                                        } )
                                         .fold(None, |result, scoredCrop| {
                                             Some(match result {
                                                 None => scoredCrop,
@@ -152,9 +167,10 @@ fn edgeDetect(i: &Image, o: &mut ImageMap) {
 
     for y in 0..h {
         for x in 0..w {
+            let color = i.get(x as u32, y as u32);
+
             let lightness = if (x == 0 || x >= w - 1 || y == 0 || y >= h - 1) {
-                //lightness = cie((*i).At(x, y))
-                0.0
+                cies[y * w + x]
             } else {
                 cies[y * w + x] * 4.0 -
                     cies[x + (y - 1) * w] -
@@ -163,18 +179,20 @@ fn edgeDetect(i: &Image, o: &mut ImageMap) {
                     cies[x + (y + 1) * w]
             };
 
-            let g = bounds(lightness) as u8;
+            let g = bounds(lightness);
 
-            let nc = RGB::new(0, g, 0);
+            let nc = RGB { g: g, ..color };
             o.set(x as u32, y as u32, nc)
         }
     }
 }
 
 fn makeCies(img: &Image) -> Vec<f64> {
+    //TODO `cies()` can probably be made RGB member that will make this function redundant
     let w = img.width();
     let h = img.height();
     let size = (w as u64 * h as u64);
+
     let size = if size > usize::max_value() as u64 {
         None
     } else {
@@ -188,10 +206,10 @@ fn makeCies(img: &Image) -> Vec<f64> {
     for y in 0..h {
         for x in 0..w {
             let color = img.get(x, y);
-            cies[i] = cie(color);
+            cies.insert(i, cie(color));
             i += 1;
-        }
-    }
+        };
+    };
 
     cies
 }
@@ -241,9 +259,12 @@ fn score(o: &ImageMap, crop: &Crop) -> Score {
     let mut Saturation = 0.0;
 
     for y in (0..).map(|i: u32| i as f64 * scoreDownSample)
-                  .take_while(|y| y < &(height * scoreDownSample)) {
+                  .take_while(|&y| y < height * scoreDownSample) {
         for x in (0..).map(|i: u32| i as f64 * scoreDownSample)
-                      .take_while(|x| x < &(width * scoreDownSample)) {
+                      .take_while(|&x| x < width * scoreDownSample) {
+            let x = (x / scoreDownSample) as u32;
+            let y = (y / scoreDownSample) as u32;
+
             let color = o.get(x as u32, y as u32);
 
             let imp = importance(crop, x as u32, y as u32);
@@ -252,8 +273,8 @@ fn score(o: &ImageMap, crop: &Crop) -> Score {
             Skin += color.r / 255.0 * (det + skinBias) * imp;
             Detail += det * imp;
             Saturation += color.b / 255.0 * (det + saturationBias) * imp;
-        }
-    }
+        };
+    };
 
     let Total = (Detail * detailWeight + Skin * skinWeight + Saturation * saturationWeight) / crop.Width as f64 / crop.Height as f64;
 
@@ -295,25 +316,6 @@ fn saturationDetect(i: &Image, o: &mut ImageMap) {
 
     for y in (0..h) {
         for x in (0..w) {
-            let lightness = cie(i.get(x, y)) / 255.0;
-            let skin = skinCol(i.get(x, y));
-
-            let nc = if skin > skinThreshold && lightness >= skinBrightnessMin && lightness <= skinBrightnessMax {
-                let r = (skin - skinThreshold) * (255.0 / (1.0 - skinThreshold));
-                let RGB { r: _, g: g, b: b } = o.get(x, y);
-
-                RGB { r: bounds(r), g, b }
-            } else {
-                let RGB { r: _, g: g, b: b } = o.get(x, y);
-                RGB { r: 0.0, g, b }
-            };
-
-            o.set(x, y, nc);
-        }
-    }
-
-    for y in (0..h) {
-        for x in (0..w) {
             let color = i.get(x, y);
             let lightness = cie(color) / 255.0;
             let saturation = saturation(color);
@@ -337,6 +339,108 @@ fn saturationDetect(i: &Image, o: &mut ImageMap) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const WHITE: RGB = RGB { r: 255.0, g: 255.0, b: 255.0 };
+    const BLACK: RGB = RGB { r: 0.0, g: 0.0, b: 0.0 };
+    const RED: RGB = RGB { r: 255.0, g: 0.0, b: 0.0 };
+    const GREEN: RGB = RGB { r: 0.0, g: 255.0, b: 0.0 };
+    const BLUE: RGB = RGB { r: 0.0, g: 0.0, b: 255.0 };
+    const SKIN: RGB = RGB { r: 255.0, g: 200.0, b: 159.0 };
+
+    #[derive(Debug)]
+    struct SinglePixelImage {
+        pixel: RGB
+    }
+
+    impl SinglePixelImage {
+        fn new(pixel: RGB) -> SinglePixelImage {
+            SinglePixelImage { pixel }
+        }
+    }
+
+    impl Image for SinglePixelImage {
+        fn width(&self) -> u32 {
+            1
+        }
+
+        fn height(&self) -> u32 {
+            1
+        }
+
+        fn resize(&self, width: u32) -> Box<Image> {
+            unimplemented!()
+        }
+
+        fn get(&self, x: u32, y: u32) -> RGB {
+            if (x != 0 || y != 0) {
+                panic!("Index overflow. x: {}, y: {}", x, y);
+            }
+
+            self.pixel
+        }
+    }
+
+    #[derive(Debug)]
+    struct TestImage {
+        w: u32,
+        h: u32,
+        pixels: Vec<Vec<RGB>>
+    }
+
+    impl TestImage {
+        fn new(w: u32, h: u32, pixels: Vec<Vec<RGB>>) -> TestImage {
+            TestImage { w, h, pixels }
+        }
+        fn new_from_fn<G>(w: u32, h: u32, generate: G ) -> TestImage
+            where G: Fn(u32, u32) -> RGB {
+            let mut pixels = vec![vec![WHITE; h as usize]; w as usize];
+
+            for y in 0..h {
+                for x in 0..w {
+                    pixels[y as usize][x as usize] = generate(x as u32, y as u32)
+                }
+            }
+
+            TestImage { w, h, pixels }
+        }
+    }
+
+    impl ImageMap {
+        fn from_image(image: &Image) -> ImageMap {
+            let mut image_map = ImageMap::new(image.width(), image.height());
+
+            for y in (0..image.height()) {
+                for x in (0..image.width()) {
+                    let color = image.get(x, y);
+                    image_map.set(x, y, color);
+                }
+            }
+
+            image_map
+        }
+    }
+
+    impl Image for TestImage {
+        fn width(&self) -> u32 {
+            self.w
+        }
+
+        fn height(&self) -> u32 {
+            self.h
+        }
+
+        fn resize(&self, width: u32) -> Box<Image> {
+            unimplemented!()
+        }
+
+        fn get(&self, x: u32, y: u32) -> RGB {
+            self.pixels[y as usize][x as usize]
+        }
+    }
+
+//    impl<'a> From<&'a Image> for ImageMap {
+//
+//    }
 
     #[test]
     fn ImageMap_test() {
@@ -392,4 +496,146 @@ mod tests {
 
         assert_eq!(s, js_version_score);
     }
+
+    impl RGB {
+        fn round(&self) -> RGB {
+            //TODO Probably should be removed
+            RGB { r: self.r.round(), g: self.g.round(), b: self.b.round() }
+        }
+    }
+
+    //#[test]
+    fn skinDetect_single_pixel_test() {
+        let detect_pixel = |color: RGB| {
+            let image = SinglePixelImage::new(color);
+            let mut o = ImageMap::new(1, 1);
+            o.set(0, 0, color);
+
+            skinDetect(&image, &mut o);
+            o.get(0, 0)
+        };
+
+        assert_eq!(detect_pixel(WHITE), RGB::new(0, 255, 255));
+        assert_eq!(detect_pixel(BLACK), RGB::new(0, 0, 0));
+        assert_eq!(detect_pixel(RED), RGB::new(0, 0, 0));
+        assert_eq!(detect_pixel(GREEN), RGB::new(0, 255, 0));
+        assert_eq!(detect_pixel(BLUE), RGB::new(0, 0, 255));
+        assert_eq!(detect_pixel(SKIN).round(), RGB::new(159, 200, 159));
+    }
+
+    //#[test]
+    fn edgeDetect_single_pixel_image_test() {
+        let edgeDetect_pixel = |color: RGB| {
+            let image = SinglePixelImage::new(color);
+            let mut o = ImageMap::new(1, 1);
+            o.set(0, 0, color);
+
+            edgeDetect(&image, &mut o);
+
+            o.get(0, 0)
+        };
+
+        assert_eq!(edgeDetect_pixel(BLACK), BLACK);
+        assert_eq!(edgeDetect_pixel(WHITE), WHITE);
+        assert_eq!(edgeDetect_pixel(RED).round(), RGB::new(255, 18, 0));
+        assert_eq!(edgeDetect_pixel(GREEN).round(), RGB::new(0, 182, 0));
+        assert_eq!(edgeDetect_pixel(BLUE).round(), RGB::new(0, 131, 255));
+        assert_eq!(edgeDetect_pixel(SKIN).round(), RGB::new(255, 243, 159));
+    }
+
+    //#[test]
+    fn edgeDetect_3x3() {
+        let image = TestImage::new(
+            3,
+            3,
+            vec![
+                vec![RED, GREEN, BLUE],
+                vec![GREEN, BLUE, RED],
+                vec![BLUE, RED, GREEN],
+            ]
+        );
+        let mut o = ImageMap::new(3, 3);
+
+        edgeDetect(&image, &mut o);
+
+        assert_eq!(o.get(0, 0), RGB { r: 255.0, g: 18.411, b: 0.0 });
+        assert_eq!(o.get(0, 0), RGB { r: 255.0, g: 18.411, b: 0.0 });
+        assert_eq!(o.get(1, 0), RGB { r: 0.0, g: 182.37599999999998, b: 0.0 });
+        assert_eq!(o.get(2, 0), RGB { r: 0.0, g: 130.713, b: 255.0 });
+        assert_eq!(o.get(0, 1), RGB { r: 0.0, g: 182.37599999999998, b: 0.0 });
+        assert_eq!(o.get(1, 1), RGB { r: 0.0, g: 121.27800000000002, b: 255.0 });
+        assert_eq!(o.get(2, 1), RGB { r: 255.0, g: 18.411, b: 0.0 });
+        assert_eq!(o.get(0, 2), RGB { r: 0.0, g: 130.713, b: 255.0 });
+        assert_eq!(o.get(1, 2), RGB { r: 255.0, g: 18.411, b: 0.0 });
+        assert_eq!(o.get(2, 2), RGB { r: 0.0, g: 182.37599999999998, b: 0.0 });
+    }
+
+    #[test]
+    fn saturationDetect_3x3() {
+        let image = TestImage::new(
+            3,
+            3,
+            vec![
+                vec![RED, GREEN, BLUE],
+                vec![WHITE, SKIN, BLACK],
+                vec![BLUE, RED, GREEN],
+            ]
+        );
+        let mut o = ImageMap::from_image(&image);
+
+        saturationDetect(&image, &mut o);
+
+        assert_eq!(o.get(0, 0), RGB { r: 255.0, g: 0.0, b: 255.0 });
+        assert_eq!(o.get(1, 0), RGB { r: 0.0, g: 255.0, b: 255.0 });
+        assert_eq!(o.get(2, 0), RGB { r: 0.0, g: 0.0, b: 255.0 });
+        assert_eq!(o.get(0, 1), RGB { r: 255.0, g: 255.0, b: 0.0 });
+        assert_eq!(o.get(1, 1), RGB { r: 255.0, g: 200.0, b: 0.0 });
+        assert_eq!(o.get(2, 1), RGB { r: 0.0, g: 0.0, b: 0.0 });
+        assert_eq!(o.get(0, 2), RGB { r: 0.0, g: 0.0, b: 255.0 });
+        assert_eq!(o.get(1, 2), RGB { r: 255.0, g: 0.0, b: 255.0 });
+        assert_eq!(o.get(2, 2), RGB { r: 0.0, g: 255.0, b: 255.0 });
+    }
+
+    #[test]
+    fn analyze_test() {
+        let image = TestImage::new_from_fn(
+            24,
+            24,
+            |x, y| {
+                if x >= 8 && x < 16 && y >= 8 && y < 16 {
+                     SKIN
+                } else {
+                    WHITE
+                }
+            }
+        );
+
+        let crop = analyse(&CropSettings::default(), &image, 8, 8, 1.0).unwrap().unwrap();
+
+
+//        { topCrop:
+//            { x: 8,
+//                y: 8,
+//                width: 8,
+//                height: 8,
+//                score:
+//                { detail: -1.7647058823529413,
+//                    saturation: 0,
+//                    skin: -0.03993215515362048,
+//                    boost: 0,
+//                    total: -0.006637797746048519 } } }
+
+
+        println!("{:?}", &crop);
+
+
+        assert_eq!(crop.crop.Width, 8);
+        assert_eq!(crop.crop.Height, 8);
+        assert_eq!(crop.score.Saturation, 0.0);
+        assert_eq!(crop.score.Detail, -1.7647058823529413);
+        assert_eq!(crop.score.Skin, -0.03993215515362048);
+        assert_eq!(crop.crop.X, 8);
+        assert_eq!(crop.crop.Y, 8);
+    }
+
 }
