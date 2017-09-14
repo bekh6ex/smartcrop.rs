@@ -8,14 +8,14 @@ const ruleOfThirds: bool = true;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct RGB {
-    pub r:f64,
-    pub g:f64,
-    pub b:f64
+    pub r:u8,
+    pub g:u8,
+    pub b:u8
 }
 
 impl RGB {
     pub fn new(r: u8, g:u8, b:u8) -> RGB {
-        RGB{r: r as f64, g: g as f64, b: b as f64}
+        RGB{r,g,b}
     }
 }
 
@@ -83,19 +83,19 @@ fn thirds(x: f64) -> f64 {
     return f64::max(1.0 - x * x, 0.0);
 }
 
-pub fn bounds(l: f64) -> f64 {
-    f64::min(f64::max(l, 0.0), 255.0)
+pub fn bounds(l: f64) -> u8 {
+    f64::min(f64::max(l, 0.0), 255.0).round() as u8
 }
 
 pub fn cie(c: RGB) -> f64 {
-    0.5126 * c.b + 0.7152 * c.g + 0.0722 * c.r
+    0.5126 * c.b as f64 + 0.7152 * c.g as f64 + 0.0722 * c.r as f64
 }
 
 pub fn skinCol(c: RGB) -> f64 {
-    let mag = (c.r * c.r + c.g * c.g + c.b * c.b).sqrt();
-    let rd = c.r / mag - skinColor[0];
-    let gd = c.g / mag - skinColor[1];
-    let bd = c.b / mag - skinColor[2];
+    let mag = (c.r as f64 * c.r as f64 + c.g as f64 * c.g as f64 + c.b as f64 * c.b as f64).sqrt();
+    let rd = c.r as f64 / mag - skinColor[0];
+    let gd = c.g as f64 / mag - skinColor[1];
+    let bd = c.b as f64 / mag - skinColor[2];
 
     let d = (rd * rd + gd * gd + bd * bd).sqrt();
 
@@ -103,8 +103,8 @@ pub fn skinCol(c: RGB) -> f64 {
 }
 
 pub fn saturation(c: RGB) -> f64 {
-    let maximum = f64::max(f64::max(c.r / 255.0, c.g / 255.0), c.b / 255.0);
-    let minimum = f64::min(f64::min(c.r / 255.0, c.g / 255.0), c.b / 255.0);
+    let maximum = f64::max(f64::max(c.r as f64 / 255.0, c.g as f64 / 255.0), c.b as f64 / 255.0);
+    let minimum = f64::min(f64::min(c.r as f64 / 255.0, c.g as f64 / 255.0), c.b as f64 / 255.0);
 
 
     if maximum == minimum {
@@ -165,11 +165,11 @@ mod tests {
 
     #[test]
     fn bounds_test() {
-        assert_eq!(0.0, bounds(-1.0));
-        assert_eq!(0.0, bounds(0.0));
-        assert_eq!(10.0, bounds(10.0));
-        assert_eq!(255.0, bounds(255.0));
-        assert_eq!(255.0, bounds(255.1));
+        assert_eq!(0, bounds(-1.0));
+        assert_eq!(0, bounds(0.0));
+        assert_eq!(10, bounds(10.0));
+        assert_eq!(255, bounds(255.0));
+        assert_eq!(255, bounds(255.1));
     }
 
     #[test]

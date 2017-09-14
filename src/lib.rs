@@ -66,7 +66,68 @@ impl ImageMap {
             .expect("X")
             .get(y as usize)
             .unwrap().clone()
-//        self.pixels[x as usize][y as usize]
+        //        self.pixels[x as usize][y as usize]
+    }
+
+    fn downSample(&self, factor: u32) -> Self {
+        //        let idata = self.data;
+        let iwidth = self.width;
+        let width = (self.width as f64 / factor as f64) as u32;
+        let height = (self.height as f64 / factor as f64) as u32;
+        let mut output = ImageMap::new(width, height);
+        //        let data = output.data;
+        let ifactor2: f64 = 1.0 / (factor as f64 * factor as f64);
+
+        let max = |a, b| {
+            if a > b {
+                a
+            } else {
+                b
+            }
+        };
+
+        for y in 0..height {
+            for x in 0..width {
+                let i = (y * width + x) * 4;
+
+                let mut r: u32 = 0;
+                let mut g: u32 = 0;
+                let mut b: u32 = 0;
+                let a = 0;
+
+                let mut mr: u8 = 0;
+                let mut mg: u8 = 0;
+                let mut mb: u8 = 0;
+
+                for v in 0..factor as u32 {
+                    for u in 0..factor {
+                        let ix = x * factor + u;
+                        let iy = y * factor + v;
+                        let icolor = self.get(ix, iy);
+
+                        r += icolor.r as u32;
+                        g += icolor.g as u32;
+                        b += icolor.b as u32;
+                        mr = max(mr, icolor.r);
+                        mg = max(mg, icolor.g);
+                        mb = max(mb, icolor.b);
+                    }
+                }
+                // this is some funky magic to preserve detail a bit more for
+                // skin (r) and detail (g). Saturation (b) does not get this boost.
+                output.set(x, y, RGB::new(
+                    (r as f64 * ifactor2 * 0.5 + mr as f64 * 0.5) as u8,
+                    (g as f64 * ifactor2 * 0.7 + mg as f64 * 0.3) as u8,
+                    (b as f64 * ifactor2) as u8)
+                )
+                //                data[i] = r * ifactor2 * 0.5 + mr * 0.5;
+                //                data[i + 1] = g * ifactor2 * 0.7 + mg * 0.3;
+                //                data[i + 2] = b * ifactor2;
+                //                data[i + 3] = a * ifactor2;
+            }
+        }
+
+        output
     }
 }
 
@@ -78,7 +139,7 @@ struct CropSettings {}
 
 impl CropSettings {
     fn default() -> CropSettings {
-        CropSettings{}
+        CropSettings {}
     }
 }
 
@@ -138,12 +199,13 @@ fn analyse(cs: &CropSettings, img: &Image, cropWidth: u32, cropHeight: u32, real
     //TODO check if crops can return empty vector
     let cs: Vec<Crop> = crops(&o, cropWidth, cropHeight, realMinScale);
     println!("{:?}", &cs);
+    let scoreOutput = o.downSample(scoreDownSample as u32);
     let topCrop: Option<ScoredCrop> = cs.iter()
                                         .map(|crop| {
-                                            let crop = ScoredCrop { crop: crop.clone(), score: score(&o, &crop) };
+                                            let crop = ScoredCrop { crop: crop.clone(), score: score(&scoreOutput, &crop) };
                                             println!("{:?}", &crop);
                                             crop
-                                        } )
+                                        })
                                         .fold(None, |result, scoredCrop| {
                                             Some(match result {
                                                 None => scoredCrop,
@@ -254,25 +316,35 @@ fn score(o: &ImageMap, crop: &Crop) -> Score {
     let height = o.height as f64;
     let width = o.width as f64;
 
+    let downSample = scoreDownSample;
+    let invDownSample = 1.0 / downSample;
+    let outputHeightDownSample = height * downSample;
+    let outputWidthDownSample = width * downSample;
+    let outputWidth = width;
+
     let mut Skin = 0.0;
     let mut Detail = 0.0;
     let mut Saturation = 0.0;
 
     for y in (0..).map(|i: u32| i as f64 * scoreDownSample)
-                  .take_while(|&y| y < height * scoreDownSample) {
+                  .take_while(|&y| y < outputHeightDownSample) {
         for x in (0..).map(|i: u32| i as f64 * scoreDownSample)
-                      .take_while(|&x| x < width * scoreDownSample) {
-            let x = (x / scoreDownSample) as u32;
-            let y = (y / scoreDownSample) as u32;
+                      .take_while(|&x| x < outputWidthDownSample) {
+            let orig_x = (x * invDownSample) as u32;
+            let orig_y = (y * invDownSample) as u32;
+            println!("{:?}x{:?}", x, y);
 
-            let color = o.get(x as u32, y as u32);
+            let color = o.get(orig_x, orig_y);
+            //            println!("{:?}", color);
 
             let imp = importance(crop, x as u32, y as u32);
-            let det = color.g / 255.0;
+            let det = color.g as f64 / 255.0;
 
-            Skin += color.r / 255.0 * (det + skinBias) * imp;
+            println!("{:?} {:?} {:?}", imp, det, crop);
+
+            Skin += color.r as f64 / 255.0 * (det + skinBias) * imp;
             Detail += det * imp;
-            Saturation += color.b / 255.0 * (det + saturationBias) * imp;
+            Saturation += color.b as f64 / 255.0 * (det + saturationBias) * imp;
         };
     };
 
@@ -302,7 +374,7 @@ fn skinDetect(i: &Image, o: &mut ImageMap) {
                 RGB { r: bounds(r), g, b }
             } else {
                 let RGB { r: _, g: g, b: b } = o.get(x, y);
-                RGB { r: 0.0, g, b }
+                RGB { r: 0, g, b }
             };
 
             o.set(x, y, nc);
@@ -328,7 +400,7 @@ fn saturationDetect(i: &Image, o: &mut ImageMap) {
                 RGB { r, g, b: bounds(b) }
             } else {
                 let RGB { r: r, g: g, b: _ } = o.get(x, y);
-                RGB { r, g, b: 0.0 }
+                RGB { r, g, b: 0 }
             };
 
             o.set(x, y, nc);
@@ -340,12 +412,12 @@ fn saturationDetect(i: &Image, o: &mut ImageMap) {
 mod tests {
     use super::*;
 
-    const WHITE: RGB = RGB { r: 255.0, g: 255.0, b: 255.0 };
-    const BLACK: RGB = RGB { r: 0.0, g: 0.0, b: 0.0 };
-    const RED: RGB = RGB { r: 255.0, g: 0.0, b: 0.0 };
-    const GREEN: RGB = RGB { r: 0.0, g: 255.0, b: 0.0 };
-    const BLUE: RGB = RGB { r: 0.0, g: 0.0, b: 255.0 };
-    const SKIN: RGB = RGB { r: 255.0, g: 200.0, b: 159.0 };
+    const WHITE: RGB = RGB { r: 255, g: 255, b: 255 };
+    const BLACK: RGB = RGB { r: 0, g: 0, b: 0 };
+    const RED: RGB = RGB { r: 255, g: 0, b: 0 };
+    const GREEN: RGB = RGB { r: 0, g: 255, b: 0 };
+    const BLUE: RGB = RGB { r: 0, g: 0, b: 255 };
+    const SKIN: RGB = RGB { r: 255, g: 200, b: 159 };
 
     #[derive(Debug)]
     struct SinglePixelImage {
@@ -391,7 +463,7 @@ mod tests {
         fn new(w: u32, h: u32, pixels: Vec<Vec<RGB>>) -> TestImage {
             TestImage { w, h, pixels }
         }
-        fn new_from_fn<G>(w: u32, h: u32, generate: G ) -> TestImage
+        fn new_from_fn<G>(w: u32, h: u32, generate: G) -> TestImage
             where G: Fn(u32, u32) -> RGB {
             let mut pixels = vec![vec![WHITE; h as usize]; w as usize];
 
@@ -438,9 +510,9 @@ mod tests {
         }
     }
 
-//    impl<'a> From<&'a Image> for ImageMap {
-//
-//    }
+    //    impl<'a> From<&'a Image> for ImageMap {
+    //
+    //    }
 
     #[test]
     fn ImageMap_test() {
@@ -500,7 +572,7 @@ mod tests {
     impl RGB {
         fn round(&self) -> RGB {
             //TODO Probably should be removed
-            RGB { r: self.r.round(), g: self.g.round(), b: self.b.round() }
+            RGB { r: self.r, g: self.g, b: self.b }
         }
     }
 
@@ -558,16 +630,16 @@ mod tests {
 
         edgeDetect(&image, &mut o);
 
-        assert_eq!(o.get(0, 0), RGB { r: 255.0, g: 18.411, b: 0.0 });
-        assert_eq!(o.get(0, 0), RGB { r: 255.0, g: 18.411, b: 0.0 });
-        assert_eq!(o.get(1, 0), RGB { r: 0.0, g: 182.37599999999998, b: 0.0 });
-        assert_eq!(o.get(2, 0), RGB { r: 0.0, g: 130.713, b: 255.0 });
-        assert_eq!(o.get(0, 1), RGB { r: 0.0, g: 182.37599999999998, b: 0.0 });
-        assert_eq!(o.get(1, 1), RGB { r: 0.0, g: 121.27800000000002, b: 255.0 });
-        assert_eq!(o.get(2, 1), RGB { r: 255.0, g: 18.411, b: 0.0 });
-        assert_eq!(o.get(0, 2), RGB { r: 0.0, g: 130.713, b: 255.0 });
-        assert_eq!(o.get(1, 2), RGB { r: 255.0, g: 18.411, b: 0.0 });
-        assert_eq!(o.get(2, 2), RGB { r: 0.0, g: 182.37599999999998, b: 0.0 });
+        assert_eq!(o.get(0, 0), RGB { r: 255, g: 18, b: 0 });
+        assert_eq!(o.get(0, 0), RGB { r: 255, g: 18, b: 0 });
+        assert_eq!(o.get(1, 0), RGB { r: 0, g: 182, b: 0 });
+        assert_eq!(o.get(2, 0), RGB { r: 0, g: 130, b: 255 });
+        assert_eq!(o.get(0, 1), RGB { r: 0, g: 182, b: 0 });
+        assert_eq!(o.get(1, 1), RGB { r: 0, g: 121, b: 255 });
+        assert_eq!(o.get(2, 1), RGB { r: 255, g: 18, b: 0 });
+        assert_eq!(o.get(0, 2), RGB { r: 0, g: 130, b: 255 });
+        assert_eq!(o.get(1, 2), RGB { r: 255, g: 18, b: 0 });
+        assert_eq!(o.get(2, 2), RGB { r: 0, g: 182, b: 0 });
     }
 
     #[test]
@@ -585,15 +657,15 @@ mod tests {
 
         saturationDetect(&image, &mut o);
 
-        assert_eq!(o.get(0, 0), RGB { r: 255.0, g: 0.0, b: 255.0 });
-        assert_eq!(o.get(1, 0), RGB { r: 0.0, g: 255.0, b: 255.0 });
-        assert_eq!(o.get(2, 0), RGB { r: 0.0, g: 0.0, b: 255.0 });
-        assert_eq!(o.get(0, 1), RGB { r: 255.0, g: 255.0, b: 0.0 });
-        assert_eq!(o.get(1, 1), RGB { r: 255.0, g: 200.0, b: 0.0 });
-        assert_eq!(o.get(2, 1), RGB { r: 0.0, g: 0.0, b: 0.0 });
-        assert_eq!(o.get(0, 2), RGB { r: 0.0, g: 0.0, b: 255.0 });
-        assert_eq!(o.get(1, 2), RGB { r: 255.0, g: 0.0, b: 255.0 });
-        assert_eq!(o.get(2, 2), RGB { r: 0.0, g: 255.0, b: 255.0 });
+        assert_eq!(o.get(0, 0), RGB { r: 255, g: 0, b: 255 });
+        assert_eq!(o.get(1, 0), RGB { r: 0, g: 255, b: 255 });
+        assert_eq!(o.get(2, 0), RGB { r: 0, g: 0, b: 255 });
+        assert_eq!(o.get(0, 1), RGB { r: 255, g: 255, b: 0 });
+        assert_eq!(o.get(1, 1), RGB { r: 255, g: 200, b: 0 });
+        assert_eq!(o.get(2, 1), RGB { r: 0, g: 0, b: 0 });
+        assert_eq!(o.get(0, 2), RGB { r: 0, g: 0, b: 255 });
+        assert_eq!(o.get(1, 2), RGB { r: 255, g: 0, b: 255 });
+        assert_eq!(o.get(2, 2), RGB { r: 0, g: 255, b: 255 });
     }
 
     #[test]
@@ -603,7 +675,7 @@ mod tests {
             24,
             |x, y| {
                 if x >= 8 && x < 16 && y >= 8 && y < 16 {
-                     SKIN
+                    SKIN
                 } else {
                     WHITE
                 }
@@ -612,30 +684,27 @@ mod tests {
 
         let crop = analyse(&CropSettings::default(), &image, 8, 8, 1.0).unwrap().unwrap();
 
-
-//        { topCrop:
-//            { x: 8,
-//                y: 8,
-//                width: 8,
-//                height: 8,
-//                score:
-//                { detail: -1.7647058823529413,
-//                    saturation: 0,
-//                    skin: -0.03993215515362048,
-//                    boost: 0,
-//                    total: -0.006637797746048519 } } }
-
+        //        { topCrop:
+        //            { x: 8,
+        //                y: 8,
+        //                width: 8,
+        //                height: 8,
+        //                score:
+        //                { detail: -1.7647058823529413,
+        //                    saturation: 0,
+        //                    skin: -0.03993215515362048,
+        //                    boost: 0,
+        //                    total: -0.006637797746048519 } } }
 
         println!("{:?}", &crop);
 
-
         assert_eq!(crop.crop.Width, 8);
         assert_eq!(crop.crop.Height, 8);
-        assert_eq!(crop.score.Saturation, 0.0);
-        assert_eq!(crop.score.Detail, -1.7647058823529413);
-        assert_eq!(crop.score.Skin, -0.03993215515362048);
         assert_eq!(crop.crop.X, 8);
         assert_eq!(crop.crop.Y, 8);
-    }
+        assert_eq!(crop.score.Saturation, 0.0);
+        assert_eq!(crop.score.Detail, -1.7647058823529413);
+        assert_eq!(crop.score.Skin, -0.19952941176470593);
 
+    }
 }
