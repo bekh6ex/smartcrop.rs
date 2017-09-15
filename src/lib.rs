@@ -2,6 +2,8 @@ mod math;
 
 use self::math::*;
 
+use std::fmt;
+
 const prescale: bool = true;
 const prescaleMin: f64 = 400.00;
 const minScale: f64 = 1.0;
@@ -109,7 +111,6 @@ impl ImageMap {
                         mr = max(mr, icolor.r as f64);
                         mg = max(mg, icolor.g as f64);
                         mb = max(mb, icolor.b as f64);
-
                     }
                 }
 
@@ -140,7 +141,13 @@ impl CropSettings {
 }
 
 struct BasicAnalyzer {
-    crop_settings: CropSettings
+    settings: CropSettings
+}
+
+impl BasicAnalyzer {
+    fn new(settings: CropSettings) -> BasicAnalyzer {
+        BasicAnalyzer { settings }
+    }
 }
 
 impl Analyzer for BasicAnalyzer {
@@ -172,11 +179,11 @@ impl Analyzer for BasicAnalyzer {
 
             let img = resize_result.as_ref();
 
-            let topCrop = try!(analyse(&self.crop_settings, img, cropWidth, cropHeight, realMinScale)).unwrap();
+            let topCrop = try!(analyse(&self.settings, img, cropWidth, cropHeight, realMinScale)).unwrap();
 
             Ok(topCrop.scale(1.0 / prescalefactor))
         } else {
-            let topCrop = try!(analyse(&self.crop_settings, img, cropWidth, cropHeight, realMinScale));
+            let topCrop = try!(analyse(&self.settings, img, cropWidth, cropHeight, realMinScale));
             //TODO check
             Ok(topCrop.unwrap())
         }
@@ -442,7 +449,7 @@ mod tests {
         }
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     struct TestImage {
         w: u32,
         h: u32,
@@ -459,7 +466,7 @@ mod tests {
 
             for y in 0..h {
                 for x in 0..w {
-                    pixels[y as usize][x as usize] = generate(x as u32, y as u32)
+                    pixels[x as usize][y as usize] = generate(x as u32, y as u32)
                 }
             }
 
@@ -492,11 +499,16 @@ mod tests {
         }
 
         fn resize(&self, width: u32) -> Box<Image> {
+            println!("{:?}", width);
+            if width == self.w {
+                return Box::new(self.clone())
+            }
+
             unimplemented!()
         }
 
         fn get(&self, x: u32, y: u32) -> RGB {
-            self.pixels[y as usize][x as usize]
+            self.pixels[x as usize][y as usize]
         }
     }
 
@@ -648,13 +660,13 @@ mod tests {
         saturationDetect(&image, &mut o);
 
         assert_eq!(o.get(0, 0), RGB { r: 255, g: 0, b: 255 });
-        assert_eq!(o.get(1, 0), RGB { r: 0, g: 255, b: 255 });
-        assert_eq!(o.get(2, 0), RGB { r: 0, g: 0, b: 255 });
-        assert_eq!(o.get(0, 1), RGB { r: 255, g: 255, b: 0 });
-        assert_eq!(o.get(1, 1), RGB { r: 255, g: 200, b: 0 });
-        assert_eq!(o.get(2, 1), RGB { r: 0, g: 0, b: 0 });
+        assert_eq!(o.get(0, 1), RGB { r: 0, g: 255, b: 255 });
         assert_eq!(o.get(0, 2), RGB { r: 0, g: 0, b: 255 });
-        assert_eq!(o.get(1, 2), RGB { r: 255, g: 0, b: 255 });
+        assert_eq!(o.get(1, 0), RGB { r: 255, g: 255, b: 0 });
+        assert_eq!(o.get(1, 1), RGB { r: 255, g: 200, b: 0 });
+        assert_eq!(o.get(1, 2), RGB { r: 0, g: 0, b: 0 });
+        assert_eq!(o.get(2, 0), RGB { r: 0, g: 0, b: 255 });
+        assert_eq!(o.get(2, 1), RGB { r: 255, g: 0, b: 255 });
         assert_eq!(o.get(2, 2), RGB { r: 0, g: 255, b: 255 });
     }
 
@@ -684,6 +696,34 @@ mod tests {
         assert_eq!(crop.score.Total, -0.006637797746048519);
     }
 
+    #[test]
+    fn find_best_crop_test() {
+        let image = TestImage::new_from_fn(
+            24,
+            8,
+            |x, y| {
+                if x < 9 {
+                    GREEN
+                } else if x < 16 {
+                    SKIN
+                } else {
+                    WHITE
+                }
+            }
+        );
+        let analyzer = BasicAnalyzer::new(CropSettings::default());
+
+        let crop = analyzer.find_best_crop(&image, 8, 8).unwrap();
+
+        assert_eq!(crop.crop.Width, 8);
+        assert_eq!(crop.crop.Height, 8);
+        assert_eq!(crop.crop.Y, 0);
+        assert_eq!(crop.crop.X, 16);
+        assert_eq!(crop.score.Detail, -4.040026482281278);
+        assert_eq!(crop.score.Saturation, -0.3337408688965783);
+        assert_eq!(crop.score.Skin, -0.13811572472126107);
+        assert_eq!(crop.score.Total, -0.018073997837867173);
+    }
 
     #[test]
     fn downSample_test() {
@@ -703,6 +743,6 @@ mod tests {
 
         assert_eq!(result.width, 1);
         assert_eq!(result.height, 1);
-        assert_eq!(result.get(0,0), RGB::new(184, 132, 103));
+        assert_eq!(result.get(0, 0), RGB::new(184, 132, 103));
     }
 }
