@@ -4,3 +4,9 @@ version = "0.0.1"
 authors = ["Aleksey Bekh-Ivanov <6ex@mail.ru>"]
 
 [dependencies]
+
+[package]
+include = [
+    "src/*.rs",
+    "Cargo.toml",
+]
