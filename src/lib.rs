@@ -32,6 +32,8 @@ const edgeWeight: f64 = -20.0;
 const outsideImportance: f64 = -0.5;
 const ruleOfThirds: bool = true;
 
+//TODO Check all `as uXX` casts. Should be rounded first
+
 trait Image {
     fn width(&self) -> u32;
     fn height(&self) -> u32;
@@ -62,11 +64,7 @@ impl ImageMap {
     }
 
     fn get(&self, x: u32, y: u32) -> RGB {
-        self.pixels.get(x as usize)
-            .expect("X")
-            .get(y as usize)
-            .unwrap().clone()
-        //        self.pixels[x as usize][y as usize]
+        self.pixels[x as usize][y as usize]
     }
 
     fn downSample(&self, factor: u32) -> Self {
@@ -90,14 +88,14 @@ impl ImageMap {
             for x in 0..width {
                 let i = (y * width + x) * 4;
 
-                let mut r: u32 = 0;
-                let mut g: u32 = 0;
-                let mut b: u32 = 0;
+                let mut r: f64 = 0.0;
+                let mut g: f64 = 0.0;
+                let mut b: f64 = 0.0;
                 let a = 0;
 
-                let mut mr: u8 = 0;
-                let mut mg: u8 = 0;
-                let mut mb: u8 = 0;
+                let mut mr: f64 = 0.0;
+                let mut mg: f64 = 0.0;
+                let mut mb: f64 = 0.0;
 
                 for v in 0..factor as u32 {
                     for u in 0..factor {
@@ -105,25 +103,23 @@ impl ImageMap {
                         let iy = y * factor + v;
                         let icolor = self.get(ix, iy);
 
-                        r += icolor.r as u32;
-                        g += icolor.g as u32;
-                        b += icolor.b as u32;
-                        mr = max(mr, icolor.r);
-                        mg = max(mg, icolor.g);
-                        mb = max(mb, icolor.b);
+                        r += icolor.r as f64;
+                        g += icolor.g as f64;
+                        b += icolor.b as f64;
+                        mr = max(mr, icolor.r as f64);
+                        mg = max(mg, icolor.g as f64);
+                        mb = max(mb, icolor.b as f64);
+
                     }
                 }
+
                 // this is some funky magic to preserve detail a bit more for
                 // skin (r) and detail (g). Saturation (b) does not get this boost.
                 output.set(x, y, RGB::new(
-                    (r as f64 * ifactor2 * 0.5 + mr as f64 * 0.5) as u8,
-                    (g as f64 * ifactor2 * 0.7 + mg as f64 * 0.3) as u8,
-                    (b as f64 * ifactor2) as u8)
+                    (r * ifactor2 * 0.5 + mr * 0.5).round() as u8,
+                    (g * ifactor2 * 0.7 + mg * 0.3).round() as u8,
+                    (b * ifactor2).round() as u8)
                 )
-                //                data[i] = r * ifactor2 * 0.5 + mr * 0.5;
-                //                data[i + 1] = g * ifactor2 * 0.7 + mg * 0.3;
-                //                data[i + 2] = b * ifactor2;
-                //                data[i + 3] = a * ifactor2;
             }
         }
 
@@ -198,12 +194,10 @@ fn analyse(cs: &CropSettings, img: &Image, cropWidth: u32, cropHeight: u32, real
 
     //TODO check if crops can return empty vector
     let cs: Vec<Crop> = crops(&o, cropWidth, cropHeight, realMinScale);
-    println!("{:?}", &cs);
     let scoreOutput = o.downSample(scoreDownSample as u32);
     let topCrop: Option<ScoredCrop> = cs.iter()
                                         .map(|crop| {
                                             let crop = ScoredCrop { crop: crop.clone(), score: score(&scoreOutput, &crop) };
-                                            println!("{:?}", &crop);
                                             crop
                                         })
                                         .fold(None, |result, scoredCrop| {
@@ -332,15 +326,11 @@ fn score(o: &ImageMap, crop: &Crop) -> Score {
                       .take_while(|&x| x < outputWidthDownSample) {
             let orig_x = (x * invDownSample) as u32;
             let orig_y = (y * invDownSample) as u32;
-            println!("{:?}x{:?}", x, y);
 
             let color = o.get(orig_x, orig_y);
-            //            println!("{:?}", color);
 
             let imp = importance(crop, x as u32, y as u32);
             let det = color.g as f64 / 255.0;
-
-            println!("{:?} {:?} {:?}", imp, det, crop);
 
             Skin += color.r as f64 / 255.0 * (det + skinBias) * imp;
             Detail += det * imp;
@@ -684,27 +674,35 @@ mod tests {
 
         let crop = analyse(&CropSettings::default(), &image, 8, 8, 1.0).unwrap().unwrap();
 
-        //        { topCrop:
-        //            { x: 8,
-        //                y: 8,
-        //                width: 8,
-        //                height: 8,
-        //                score:
-        //                { detail: -1.7647058823529413,
-        //                    saturation: 0,
-        //                    skin: -0.03993215515362048,
-        //                    boost: 0,
-        //                    total: -0.006637797746048519 } } }
-
-        println!("{:?}", &crop);
-
         assert_eq!(crop.crop.Width, 8);
         assert_eq!(crop.crop.Height, 8);
         assert_eq!(crop.crop.X, 8);
         assert_eq!(crop.crop.Y, 8);
         assert_eq!(crop.score.Saturation, 0.0);
         assert_eq!(crop.score.Detail, -1.7647058823529413);
-        assert_eq!(crop.score.Skin, -0.19952941176470593);
+        assert_eq!(crop.score.Skin, -0.03993215515362048);
+        assert_eq!(crop.score.Total, -0.006637797746048519);
+    }
 
+
+    #[test]
+    fn downSample_test() {
+        let image = TestImage::new(
+            3,
+            3,
+            vec![
+                vec![RED, GREEN, BLUE],
+                vec![SKIN, BLUE, RED],
+                vec![BLUE, RED, GREEN],
+            ]
+        );
+
+        let image_map = ImageMap::from_image(&image);
+
+        let result = image_map.downSample(3);
+
+        assert_eq!(result.width, 1);
+        assert_eq!(result.height, 1);
+        assert_eq!(result.get(0,0), RGB::new(184, 132, 103));
     }
 }
