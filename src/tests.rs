@@ -90,7 +90,6 @@ impl Image for TestImage {
     }
 
     fn resize(&self, width: u32) -> Box<Image> {
-        println!("{:?}", width);
         if width == self.w {
             return Box::new(self.clone());
         }
