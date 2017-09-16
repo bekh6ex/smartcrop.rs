@@ -131,10 +131,6 @@ impl ImageMap {
     }
 }
 
-trait Analyzer {
-    fn find_best_crop(&self, image: &Image, width: u32, height: u32) -> Result<ScoredCrop, String>;
-}
-
 struct CropSettings {}
 
 impl CropSettings {
@@ -143,17 +139,15 @@ impl CropSettings {
     }
 }
 
-struct BasicAnalyzer {
+struct Analyzer {
     settings: CropSettings
 }
 
-impl BasicAnalyzer {
-    fn new(settings: CropSettings) -> BasicAnalyzer {
-        BasicAnalyzer { settings }
+impl Analyzer {
+    fn new(settings: CropSettings) -> Analyzer {
+        Analyzer { settings }
     }
-}
 
-impl Analyzer for BasicAnalyzer {
     fn find_best_crop(&self, img: &Image, width: u32, height: u32) -> Result<ScoredCrop, String> {
         if width == 0 && height == 0 {
             return Err("Expect either a height or width".to_owned());

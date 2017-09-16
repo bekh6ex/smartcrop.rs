@@ -303,7 +303,7 @@ fn find_best_crop_test() {
             }
         }
     );
-    let analyzer = BasicAnalyzer::new(CropSettings::default());
+    let analyzer = Analyzer::new(CropSettings::default());
 
     let crop = analyzer.find_best_crop(&image, 8, 8).unwrap();
 
@@ -354,7 +354,7 @@ fn bench_find_best_crop(b: &mut Bencher) {
             }
         }
     );
-    let analyzer = BasicAnalyzer::new(CropSettings::default());
+    let analyzer = Analyzer::new(CropSettings::default());
 
 
     b.iter(|| {
