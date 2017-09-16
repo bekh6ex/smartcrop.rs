@@ -1,4 +1,6 @@
+use test::Bencher;
 use super::*;
+
 
 const WHITE: RGB = RGB { r: 255, g: 255, b: 255 };
 const BLACK: RGB = RGB { r: 0, g: 0, b: 0 };
@@ -335,3 +337,28 @@ fn down_sample_test() {
     assert_eq!(result.height, 1);
     assert_eq!(result.get(0, 0), RGB::new(184, 132, 103));
 }
+
+
+#[bench]
+fn bench_find_best_crop(b: &mut Bencher) {
+    let image = TestImage::new_from_fn(
+        24,
+        8,
+        |x, y| {
+            if x < 9 {
+                GREEN
+            } else if x < 16 {
+                SKIN
+            } else {
+                WHITE
+            }
+        }
+    );
+    let analyzer = BasicAnalyzer::new(CropSettings::default());
+
+
+    b.iter(|| {
+        analyzer.find_best_crop(&image, 8, 8).unwrap();
+    });
+}
+
