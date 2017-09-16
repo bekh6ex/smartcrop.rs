@@ -152,7 +152,7 @@ impl BasicAnalyzer {
 
 impl Analyzer for BasicAnalyzer {
     fn find_best_crop(&self, img: &Image, width: u32, height: u32) -> Result<ScoredCrop, String> {
-        if (width == 0 && height == 0) {
+        if width == 0 && height == 0 {
             return Err("Expect either a height or width".to_owned());
         }
         let width = width as f64;
@@ -210,7 +210,7 @@ fn analyse(cs: &CropSettings, img: &Image, crop_width: u32, crop_height: u32, re
                                          .fold(None, |result, scored_crop| {
                                             Some(match result {
                                                 None => scored_crop,
-                                                Some(result) => if (result.score.total > scored_crop.score.total) {
+                                                Some(result) => if result.score.total > scored_crop.score.total {
                                                     result
                                                 } else {
                                                     scored_crop
@@ -232,7 +232,7 @@ fn edge_detect(i: &Image, o: &mut ImageMap) {
         for x in 0..w {
             let color = i.get(x as u32, y as u32);
 
-            let lightness = if (x == 0 || x >= w - 1 || y == 0 || y >= h - 1) {
+            let lightness = if x == 0 || x >= w - 1 || y == 0 || y >= h - 1 {
                 cies[y * w + x]
             } else {
                 cies[y * w + x] * 4.0 -
@@ -289,7 +289,7 @@ fn crops(i: &ImageMap, crop_width: u32, crop_height: u32, real_min_scale: f64) -
 
     let mut scale = MAX_SCALE;
     loop {
-        if (scale < real_min_scale) {
+        if scale < real_min_scale {
             break;
         }
 
@@ -359,8 +359,8 @@ fn skin_detect(i: &Image, o: &mut ImageMap) {
     let w = i.width();
     let h = i.height();
 
-    for y in (0..h) {
-        for x in (0..w) {
+    for y in 0..h {
+        for x in 0..w {
             let lightness = cie(i.get(x, y)) / 255.0;
             let skin = skin_col(i.get(x, y));
 
@@ -383,8 +383,8 @@ fn saturation_detect(i: &Image, o: &mut ImageMap) {
     let w = i.width();
     let h = i.height();
 
-    for y in (0..h) {
-        for x in (0..w) {
+    for y in 0..h {
+        for x in 0..w {
             let color = i.get(x, y);
             let lightness = cie(color) / 255.0;
             let saturation = saturation(color);
@@ -441,7 +441,7 @@ mod tests {
         }
 
         fn get(&self, x: u32, y: u32) -> RGB {
-            if (x != 0 || y != 0) {
+            if x != 0 || y != 0 {
                 panic!("Index overflow. x: {}, y: {}", x, y);
             }
 
@@ -478,8 +478,8 @@ mod tests {
         fn from_image(image: &Image) -> ImageMap {
             let mut image_map = ImageMap::new(image.width(), image.height());
 
-            for y in (0..image.height()) {
-                for x in (0..image.width()) {
+            for y in 0..image.height() {
+                for x in 0..image.width() {
                     let color = image.get(x, y);
                     image_map.set(x, y, color);
                 }
