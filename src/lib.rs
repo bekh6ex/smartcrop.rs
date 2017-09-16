@@ -4,35 +4,35 @@ use self::math::*;
 
 use std::fmt;
 
-const prescale: bool = true;
-const prescaleMin: f64 = 400.00;
-const minScale: f64 = 1.0;
-const maxScale: f64 = 1.0;
-const step: f64 = 8.0;
-const scaleStep: f64 = 0.1;
+const PRESCALE: bool = true;
+const PRESCALE_MIN: f64 = 400.00;
+const MIN_SCALE: f64 = 1.0;
+const MAX_SCALE: f64 = 1.0;
+const STEP: f64 = 8.0;
+const SCALE_STEP: f64 = 0.1;
 
-const scoreDownSample: f64 = 8.0;
+const SCORE_DOWN_SAMPLE: f64 = 8.0;
 
-const saturationBias: f64 = 0.2;
-const skinBias: f64 = 0.01;
+const SATURATION_BIAS: f64 = 0.2;
+const SKIN_BIAS: f64 = 0.01;
 
-const skinWeight: f64 = 1.8;
-const saturationWeight: f64 = 0.3;
-const detailWeight: f64 = 0.2;
+const SKIN_WEIGHT: f64 = 1.8;
+const SATURATION_WEIGHT: f64 = 0.3;
+const DETAIL_WEIGHT: f64 = 0.2;
 
-const skinBrightnessMin: f64 = 0.2;
-const skinBrightnessMax: f64 = 1.0;
-const skinThreshold: f64 = 0.8;
+const SKIN_BRIGHTNESS_MIN: f64 = 0.2;
+const SKIN_BRIGHTNESS_MAX: f64 = 1.0;
+const SKIN_THRESHOLD: f64 = 0.8;
 
-const saturationBrightnessMin: f64 = 0.05;
-const saturationBrightnessMax: f64 = 0.9;
-const saturationThreshold: f64 = 0.4;
-// step * minscale rounded down to the next power of two should be good
-// step * minscale rounded down to the next power of two should be good
-const edgeRadius: f64 = 0.4;
-const edgeWeight: f64 = -20.0;
-const outsideImportance: f64 = -0.5;
-const ruleOfThirds: bool = true;
+const SATURATION_BRIGHTNESS_MIN: f64 = 0.05;
+const SATURATION_BRIGHTNESS_MAX: f64 = 0.9;
+const SATURATION_THRESHOLD: f64 = 0.4;
+// STEP * minscale rounded down to the next power of two should be good
+// STEP * minscale rounded down to the next power of two should be good
+const EDGE_RADIUS: f64 = 0.4;
+const EDGE_WEIGHT: f64 = -20.0;
+const OUTSIDE_IMPORTANCE: f64 = -0.5;
+const RULE_OF_THIRDS: bool = true;
 
 //TODO Check all `as uXX` casts. Should be rounded first
 
@@ -69,7 +69,7 @@ impl ImageMap {
         self.pixels[x as usize][y as usize]
     }
 
-    fn downSample(&self, factor: u32) -> Self {
+    fn down_sample(&self, factor: u32) -> Self {
         //        let idata = self.data;
         let iwidth = self.width;
         let width = (self.width as f64 / factor as f64) as u32;
@@ -115,7 +115,7 @@ impl ImageMap {
                 }
 
                 // this is some funky magic to preserve detail a bit more for
-                // skin (r) and detail (g). Saturation (b) does not get this boost.
+                // skin (r) and detail (g). saturation (b) does not get this boost.
                 output.set(x, y, RGB::new(
                     (r * ifactor2 * 0.5 + mr * 0.5).round() as u8,
                     (g * ifactor2 * 0.7 + mg * 0.3).round() as u8,
@@ -163,12 +163,12 @@ impl Analyzer for BasicAnalyzer {
         // resize image for faster processing
         let prescalefactor = 1.0;
 
-        let cropWidth = chop(width * scale * prescalefactor) as u32;
-        let cropHeight = chop(height * scale * prescalefactor) as u32;
-        let realMinScale = f64::min(maxScale, f64::max(1.0 / scale, minScale));
+        let crop_width = chop(width * scale * prescalefactor) as u32;
+        let crop_height = chop(height * scale * prescalefactor) as u32;
+        let real_min_scale = f64::min(MAX_SCALE, f64::max(1.0 / scale, MIN_SCALE));
 
-        if prescale {
-            let f = prescaleMin / f64::min((img.width() as f64), (img.height() as f64));
+        if PRESCALE {
+            let f = PRESCALE_MIN / f64::min((img.width() as f64), (img.height() as f64));
             let prescalefactor = if f < 1.0 {
                 f
             } else {
@@ -179,54 +179,54 @@ impl Analyzer for BasicAnalyzer {
 
             let img = resize_result.as_ref();
 
-            let topCrop = try!(analyse(&self.settings, img, cropWidth, cropHeight, realMinScale)).unwrap();
+            let top_crop = try!(analyse(&self.settings, img, crop_width, crop_height, real_min_scale)).unwrap();
 
-            Ok(topCrop.scale(1.0 / prescalefactor))
+            Ok(top_crop.scale(1.0 / prescalefactor))
         } else {
-            let topCrop = try!(analyse(&self.settings, img, cropWidth, cropHeight, realMinScale));
+            let top_crop = try!(analyse(&self.settings, img, crop_width, crop_height, real_min_scale));
             //TODO check
-            Ok(topCrop.unwrap())
+            Ok(top_crop.unwrap())
         }
     }
 }
 
-fn analyse(cs: &CropSettings, img: &Image, cropWidth: u32, cropHeight: u32, realMinScale: f64) -> Result<Option<ScoredCrop>, String> {
+fn analyse(cs: &CropSettings, img: &Image, crop_width: u32, crop_height: u32, real_min_scale: f64) -> Result<Option<ScoredCrop>, String> {
     let mut o = ImageMap::new(img.width(), img.height());
 
-    edgeDetect(img, &mut o);
+    edge_detect(img, &mut o);
 
-    skinDetect(img, &mut o);
+    skin_detect(img, &mut o);
 
-    saturationDetect(img, &mut o);
+    saturation_detect(img, &mut o);
 
     //TODO check if crops can return empty vector
-    let cs: Vec<Crop> = crops(&o, cropWidth, cropHeight, realMinScale);
-    let scoreOutput = o.downSample(scoreDownSample as u32);
-    let topCrop: Option<ScoredCrop> = cs.iter()
-                                        .map(|crop| {
-                                            let crop = ScoredCrop { crop: crop.clone(), score: score(&scoreOutput, &crop) };
+    let cs: Vec<Crop> = crops(&o, crop_width, crop_height, real_min_scale);
+    let score_output = o.down_sample(SCORE_DOWN_SAMPLE as u32);
+    let top_crop: Option<ScoredCrop> = cs.iter()
+                                         .map(|crop| {
+                                            let crop = ScoredCrop { crop: crop.clone(), score: score(&score_output, &crop) };
                                             crop
                                         })
-                                        .fold(None, |result, scoredCrop| {
+                                         .fold(None, |result, scored_crop| {
                                             Some(match result {
-                                                None => scoredCrop,
-                                                Some(result) => if (result.score.Total > scoredCrop.score.Total) {
+                                                None => scored_crop,
+                                                Some(result) => if (result.score.total > scored_crop.score.total) {
                                                     result
                                                 } else {
-                                                    scoredCrop
+                                                    scored_crop
                                                 }
                                             })
                                         });
 
-    Ok(topCrop)
+    Ok(top_crop)
 }
 
-fn edgeDetect(i: &Image, o: &mut ImageMap) {
+fn edge_detect(i: &Image, o: &mut ImageMap) {
     //TODO check type casts if those are safe
 
     let w = i.width() as usize;
     let h = i.height() as usize;
-    let cies = makeCies(i);
+    let cies = make_cies(i);
 
     for y in 0..h {
         for x in 0..w {
@@ -250,7 +250,7 @@ fn edgeDetect(i: &Image, o: &mut ImageMap) {
     }
 }
 
-fn makeCies(img: &Image) -> Vec<f64> {
+fn make_cies(img: &Image) -> Vec<f64> {
     //TODO `cies()` can probably be made RGB member that will make this function redundant
     let w = img.width();
     let h = img.height();
@@ -277,37 +277,37 @@ fn makeCies(img: &Image) -> Vec<f64> {
     cies
 }
 
-fn crops(i: &ImageMap, cropWidth: u32, cropHeight: u32, realMinScale: f64) -> Vec<Crop> {
+fn crops(i: &ImageMap, crop_width: u32, crop_height: u32, real_min_scale: f64) -> Vec<Crop> {
     let mut crops: Vec<Crop> = vec![];
     let width = i.width as f64;
     let height = i.height as f64;
 
-    let minDimension = f64::min(width, height);
+    let min_dimension = f64::min(width, height);
 
-    let cropW = if cropWidth != 0 { cropWidth as f64 } else { minDimension };
-    let cropH = if cropHeight != 0 { cropHeight as f64 } else { minDimension };
+    let crop_w = if crop_width != 0 { crop_width as f64 } else { min_dimension };
+    let crop_h = if crop_height != 0 { crop_height as f64 } else { min_dimension };
 
-    let mut scale = maxScale;
+    let mut scale = MAX_SCALE;
     loop {
-        if (scale < realMinScale) {
+        if (scale < real_min_scale) {
             break;
         }
 
-        for y in (0..).map(|i: u32| i as f64 * step)
-                      .take_while(|y| y + cropH * scale <= height) {
-            for x in (0..).map(|i: u32| i as f64 * step)
-                          .take_while(|x| x + cropW * scale <= width) {
+        for y in (0..).map(|i: u32| i as f64 * STEP)
+                      .take_while(|y| y + crop_h * scale <= height) {
+            for x in (0..).map(|i: u32| i as f64 * STEP)
+                          .take_while(|x| x + crop_w * scale <= width) {
                 crops.push(Crop {
-                    X: x as u32,
-                    Y: y as u32,
-                    Width: (cropW * scale) as u32,
-                    Height: (cropH * scale) as u32,
+                    x: x as u32,
+                    y: y as u32,
+                    width: (crop_w * scale) as u32,
+                    height: (crop_h * scale) as u32,
 
                 });
             }
         }
 
-        scale -= scaleStep;
+        scale -= SCALE_STEP;
     }
 
     crops
@@ -317,55 +317,55 @@ fn score(o: &ImageMap, crop: &Crop) -> Score {
     let height = o.height as f64;
     let width = o.width as f64;
 
-    let downSample = scoreDownSample;
-    let invDownSample = 1.0 / downSample;
-    let outputHeightDownSample = height * downSample;
-    let outputWidthDownSample = width * downSample;
-    let outputWidth = width;
+    let down_sample = SCORE_DOWN_SAMPLE;
+    let inv_down_sample = 1.0 / down_sample;
+    let output_height_down_sample = height * down_sample;
+    let output_width_down_sample = width * down_sample;
+    let output_width = width;
 
-    let mut Skin = 0.0;
-    let mut Detail = 0.0;
-    let mut Saturation = 0.0;
+    let mut skin = 0.0;
+    let mut detail = 0.0;
+    let mut saturation = 0.0;
 
-    for y in (0..).map(|i: u32| i as f64 * scoreDownSample)
-                  .take_while(|&y| y < outputHeightDownSample) {
-        for x in (0..).map(|i: u32| i as f64 * scoreDownSample)
-                      .take_while(|&x| x < outputWidthDownSample) {
-            let orig_x = (x * invDownSample) as u32;
-            let orig_y = (y * invDownSample) as u32;
+    for y in (0..).map(|i: u32| i as f64 * SCORE_DOWN_SAMPLE)
+                  .take_while(|&y| y < output_height_down_sample) {
+        for x in (0..).map(|i: u32| i as f64 * SCORE_DOWN_SAMPLE)
+                      .take_while(|&x| x < output_width_down_sample) {
+            let orig_x = (x * inv_down_sample) as u32;
+            let orig_y = (y * inv_down_sample) as u32;
 
             let color = o.get(orig_x, orig_y);
 
             let imp = importance(crop, x as u32, y as u32);
             let det = color.g as f64 / 255.0;
 
-            Skin += color.r as f64 / 255.0 * (det + skinBias) * imp;
-            Detail += det * imp;
-            Saturation += color.b as f64 / 255.0 * (det + saturationBias) * imp;
+            skin += color.r as f64 / 255.0 * (det + SKIN_BIAS) * imp;
+            detail += det * imp;
+            saturation += color.b as f64 / 255.0 * (det + SATURATION_BIAS) * imp;
         };
     };
 
-    let Total = (Detail * detailWeight + Skin * skinWeight + Saturation * saturationWeight) / crop.Width as f64 / crop.Height as f64;
+    let total = (detail * DETAIL_WEIGHT + skin * SKIN_WEIGHT + saturation * SATURATION_WEIGHT) / crop.width as f64 / crop.height as f64;
 
     Score {
-        Skin,
-        Detail,
-        Saturation,
-        Total
+        skin: skin,
+        detail: detail,
+        saturation: saturation,
+        total: total
     }
 }
 
-fn skinDetect(i: &Image, o: &mut ImageMap) {
+fn skin_detect(i: &Image, o: &mut ImageMap) {
     let w = i.width();
     let h = i.height();
 
     for y in (0..h) {
         for x in (0..w) {
             let lightness = cie(i.get(x, y)) / 255.0;
-            let skin = skinCol(i.get(x, y));
+            let skin = skin_col(i.get(x, y));
 
-            let nc = if skin > skinThreshold && lightness >= skinBrightnessMin && lightness <= skinBrightnessMax {
-                let r = (skin - skinThreshold) * (255.0 / (1.0 - skinThreshold));
+            let nc = if skin > SKIN_THRESHOLD && lightness >= SKIN_BRIGHTNESS_MIN && lightness <= SKIN_BRIGHTNESS_MAX {
+                let r = (skin - SKIN_THRESHOLD) * (255.0 / (1.0 - SKIN_THRESHOLD));
                 let RGB { r: _, g: g, b: b } = o.get(x, y);
 
                 RGB { r: bounds(r), g, b }
@@ -379,7 +379,7 @@ fn skinDetect(i: &Image, o: &mut ImageMap) {
     }
 }
 
-fn saturationDetect(i: &Image, o: &mut ImageMap) {
+fn saturation_detect(i: &Image, o: &mut ImageMap) {
     let w = i.width();
     let h = i.height();
 
@@ -389,10 +389,10 @@ fn saturationDetect(i: &Image, o: &mut ImageMap) {
             let lightness = cie(color) / 255.0;
             let saturation = saturation(color);
 
-            let nc = if saturation > saturationThreshold
-                && lightness >= saturationBrightnessMin
-                && lightness <= saturationBrightnessMax {
-                let b = (saturation - saturationThreshold) * (255.0 / (1.0 - saturationThreshold));
+            let nc = if saturation > SATURATION_THRESHOLD
+                && lightness >= SATURATION_BRIGHTNESS_MIN
+                && lightness <= SATURATION_BRIGHTNESS_MAX {
+                let b = (saturation - SATURATION_THRESHOLD) * (255.0 / (1.0 - SATURATION_THRESHOLD));
                 let RGB { r: r, g: g, b: _ } = o.get(x, y);
                 RGB { r, g, b: bounds(b) }
             } else {
@@ -517,7 +517,7 @@ mod tests {
     //    }
 
     #[test]
-    fn ImageMap_test() {
+    fn image_map_test() {
         let mut image_map = ImageMap::new(1, 2);
 
         assert_eq!(image_map.width, 1);
@@ -537,11 +537,11 @@ mod tests {
 
     #[test]
     fn crops_test() {
-        let realMinScale = minScale;
+        let real_min_scale = MIN_SCALE;
 
-        let crops = crops(&ImageMap::new(8, 8), 8, 8, realMinScale);
+        let crops = crops(&ImageMap::new(8, 8), 8, 8, real_min_scale);
 
-        assert_eq!(crops[0], Crop { X: 0, Y: 0, Width: 8, Height: 8 })
+        assert_eq!(crops[0], Crop { x: 0, y: 0, width: 8, height: 8 })
     }
 
     #[test]
@@ -549,9 +549,9 @@ mod tests {
         let mut i = ImageMap::new(1, 1);
         i.set(0, 0, RGB::new(0, 0, 0));
 
-        let s = score(&i, &Crop { X: 0, Y: 0, Width: 1, Height: 1 });
+        let s = score(&i, &Crop { x: 0, y: 0, width: 1, height: 1 });
 
-        assert_eq!(s, Score { Detail: 0.0, Saturation: 0.0, Skin: 0.0, Total: 0.0 });
+        assert_eq!(s, Score { detail: 0.0, saturation: 0.0, skin: 0.0, total: 0.0 });
     }
 
     #[test]
@@ -559,13 +559,13 @@ mod tests {
         let mut i = ImageMap::new(1, 1);
         i.set(0, 0, RGB::new(255, 255, 255));
 
-        let s = score(&i, &Crop { X: 0, Y: 0, Width: 1, Height: 1 });
+        let s = score(&i, &Crop { x: 0, y: 0, width: 1, height: 1 });
 
         let js_version_score = Score {
-            Detail: -6.404213562373096,
-            Saturation: -7.685056274847715,
-            Skin: -6.468255697996827,
-            Total: -15.229219851323222
+            detail: -6.404213562373096,
+            saturation: -7.685056274847715,
+            skin: -6.468255697996827,
+            total: -15.229219851323222
         };
 
         assert_eq!(s, js_version_score);
@@ -579,13 +579,13 @@ mod tests {
     }
 
     //#[test]
-    fn skinDetect_single_pixel_test() {
+    fn skin_detect_single_pixel_test() {
         let detect_pixel = |color: RGB| {
             let image = SinglePixelImage::new(color);
             let mut o = ImageMap::new(1, 1);
             o.set(0, 0, color);
 
-            skinDetect(&image, &mut o);
+            skin_detect(&image, &mut o);
             o.get(0, 0)
         };
 
@@ -598,27 +598,27 @@ mod tests {
     }
 
     //#[test]
-    fn edgeDetect_single_pixel_image_test() {
-        let edgeDetect_pixel = |color: RGB| {
+    fn edge_detect_single_pixel_image_test() {
+        let edge_detect_pixel = |color: RGB| {
             let image = SinglePixelImage::new(color);
             let mut o = ImageMap::new(1, 1);
             o.set(0, 0, color);
 
-            edgeDetect(&image, &mut o);
+            edge_detect(&image, &mut o);
 
             o.get(0, 0)
         };
 
-        assert_eq!(edgeDetect_pixel(BLACK), BLACK);
-        assert_eq!(edgeDetect_pixel(WHITE), WHITE);
-        assert_eq!(edgeDetect_pixel(RED).round(), RGB::new(255, 18, 0));
-        assert_eq!(edgeDetect_pixel(GREEN).round(), RGB::new(0, 182, 0));
-        assert_eq!(edgeDetect_pixel(BLUE).round(), RGB::new(0, 131, 255));
-        assert_eq!(edgeDetect_pixel(SKIN).round(), RGB::new(255, 243, 159));
+        assert_eq!(edge_detect_pixel(BLACK), BLACK);
+        assert_eq!(edge_detect_pixel(WHITE), WHITE);
+        assert_eq!(edge_detect_pixel(RED).round(), RGB::new(255, 18, 0));
+        assert_eq!(edge_detect_pixel(GREEN).round(), RGB::new(0, 182, 0));
+        assert_eq!(edge_detect_pixel(BLUE).round(), RGB::new(0, 131, 255));
+        assert_eq!(edge_detect_pixel(SKIN).round(), RGB::new(255, 243, 159));
     }
 
     //#[test]
-    fn edgeDetect_3x3() {
+    fn edge_detect_3x3() {
         let image = TestImage::new(
             3,
             3,
@@ -630,7 +630,7 @@ mod tests {
         );
         let mut o = ImageMap::new(3, 3);
 
-        edgeDetect(&image, &mut o);
+        edge_detect(&image, &mut o);
 
         assert_eq!(o.get(0, 0), RGB { r: 255, g: 18, b: 0 });
         assert_eq!(o.get(0, 0), RGB { r: 255, g: 18, b: 0 });
@@ -645,7 +645,7 @@ mod tests {
     }
 
     #[test]
-    fn saturationDetect_3x3() {
+    fn saturation_detect_3x3() {
         let image = TestImage::new(
             3,
             3,
@@ -657,7 +657,7 @@ mod tests {
         );
         let mut o = ImageMap::from_image(&image);
 
-        saturationDetect(&image, &mut o);
+        saturation_detect(&image, &mut o);
 
         assert_eq!(o.get(0, 0), RGB { r: 255, g: 0, b: 255 });
         assert_eq!(o.get(0, 1), RGB { r: 0, g: 255, b: 255 });
@@ -686,14 +686,14 @@ mod tests {
 
         let crop = analyse(&CropSettings::default(), &image, 8, 8, 1.0).unwrap().unwrap();
 
-        assert_eq!(crop.crop.Width, 8);
-        assert_eq!(crop.crop.Height, 8);
-        assert_eq!(crop.crop.X, 8);
-        assert_eq!(crop.crop.Y, 8);
-        assert_eq!(crop.score.Saturation, 0.0);
-        assert_eq!(crop.score.Detail, -1.7647058823529413);
-        assert_eq!(crop.score.Skin, -0.03993215515362048);
-        assert_eq!(crop.score.Total, -0.006637797746048519);
+        assert_eq!(crop.crop.width, 8);
+        assert_eq!(crop.crop.height, 8);
+        assert_eq!(crop.crop.x, 8);
+        assert_eq!(crop.crop.y, 8);
+        assert_eq!(crop.score.saturation, 0.0);
+        assert_eq!(crop.score.detail, -1.7647058823529413);
+        assert_eq!(crop.score.skin, -0.03993215515362048);
+        assert_eq!(crop.score.total, -0.006637797746048519);
     }
 
     #[test]
@@ -715,18 +715,18 @@ mod tests {
 
         let crop = analyzer.find_best_crop(&image, 8, 8).unwrap();
 
-        assert_eq!(crop.crop.Width, 8);
-        assert_eq!(crop.crop.Height, 8);
-        assert_eq!(crop.crop.Y, 0);
-        assert_eq!(crop.crop.X, 16);
-        assert_eq!(crop.score.Detail, -4.040026482281278);
-        assert_eq!(crop.score.Saturation, -0.3337408688965783);
-        assert_eq!(crop.score.Skin, -0.13811572472126107);
-        assert_eq!(crop.score.Total, -0.018073997837867173);
+        assert_eq!(crop.crop.width, 8);
+        assert_eq!(crop.crop.height, 8);
+        assert_eq!(crop.crop.y, 0);
+        assert_eq!(crop.crop.x, 16);
+        assert_eq!(crop.score.detail, -4.040026482281278);
+        assert_eq!(crop.score.saturation, -0.3337408688965783);
+        assert_eq!(crop.score.skin, -0.13811572472126107);
+        assert_eq!(crop.score.total, -0.018073997837867173);
     }
 
     #[test]
-    fn downSample_test() {
+    fn down_sample_test() {
         let image = TestImage::new(
             3,
             3,
@@ -739,7 +739,7 @@ mod tests {
 
         let image_map = ImageMap::from_image(&image);
 
-        let result = image_map.downSample(3);
+        let result = image_map.down_sample(3);
 
         assert_eq!(result.width, 1);
         assert_eq!(result.height, 1);
