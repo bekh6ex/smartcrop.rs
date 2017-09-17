@@ -1,6 +1,3 @@
-#![feature(test)]
-extern crate test;
-
 mod math;
 
 use self::math::*;
@@ -39,11 +36,32 @@ const RULE_OF_THIRDS: bool = true;
 
 //TODO Check all `as uXX` casts. Should be rounded first
 
-trait Image {
+pub trait Image {
     fn width(&self) -> u32;
     fn height(&self) -> u32;
     fn resize(&self, width: u32) -> Box<Image>;
     fn get(&self, x: u32, y: u32) -> RGB;
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct RGB {
+    pub r:u8,
+    pub g:u8,
+    pub b:u8
+}
+
+impl RGB {
+    pub fn new(r: u8, g:u8, b:u8) -> RGB {
+        RGB{r,g,b}
+    }
+}
+
+pub struct CropSettings {}
+
+impl CropSettings {
+    pub fn default() -> CropSettings {
+        CropSettings {}
+    }
 }
 
 struct ImageMap {
@@ -131,24 +149,18 @@ impl ImageMap {
     }
 }
 
-struct CropSettings {}
 
-impl CropSettings {
-    fn default() -> CropSettings {
-        CropSettings {}
-    }
-}
 
-struct Analyzer {
+pub struct Analyzer {
     settings: CropSettings
 }
 
 impl Analyzer {
-    fn new(settings: CropSettings) -> Analyzer {
+    pub fn new(settings: CropSettings) -> Analyzer {
         Analyzer { settings }
     }
 
-    fn find_best_crop(&self, img: &Image, width: u32, height: u32) -> Result<ScoredCrop, String> {
+    pub fn find_best_crop(&self, img: &Image, width: u32, height: u32) -> Result<ScoredCrop, String> {
         if width == 0 && height == 0 {
             return Err("Expect either a height or width".to_owned());
         }

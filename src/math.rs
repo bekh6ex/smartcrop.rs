@@ -1,4 +1,6 @@
 
+use super::*;
+
 const SKIN_COLOR: [f64; 3] = [0.78, 0.57, 0.44];
 const OUTSIDE_IMPORTANCE: f64 = -0.5;
 const EDGE_RADIUS: f64 = 0.4;
@@ -6,18 +8,7 @@ const EDGE_WEIGHT: f64 = -20.0;
 const RULE_OF_THIRDS: bool = true;
 
 
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub struct RGB {
-    pub r:u8,
-    pub g:u8,
-    pub b:u8
-}
 
-impl RGB {
-    pub fn new(r: u8, g:u8, b:u8) -> RGB {
-        RGB{r,g,b}
-    }
-}
 
 
 
