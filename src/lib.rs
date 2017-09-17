@@ -2,12 +2,11 @@ mod math;
 
 use self::math::*;
 
-use std::fmt;
-
 const PRESCALE: bool = true;
 const PRESCALE_MIN: f64 = 400.00;
 const MIN_SCALE: f64 = 1.0;
 const MAX_SCALE: f64 = 1.0;
+// STEP * minscale rounded down to the next power of two should be good
 const STEP: f64 = 8.0;
 const SCALE_STEP: f64 = 0.1;
 
@@ -27,12 +26,6 @@ const SKIN_THRESHOLD: f64 = 0.8;
 const SATURATION_BRIGHTNESS_MIN: f64 = 0.05;
 const SATURATION_BRIGHTNESS_MAX: f64 = 0.9;
 const SATURATION_THRESHOLD: f64 = 0.4;
-// STEP * minscale rounded down to the next power of two should be good
-// STEP * minscale rounded down to the next power of two should be good
-const EDGE_RADIUS: f64 = 0.4;
-const EDGE_WEIGHT: f64 = -20.0;
-const OUTSIDE_IMPORTANCE: f64 = -0.5;
-const RULE_OF_THIRDS: bool = true;
 
 //TODO Check all `as uXX` casts. Should be rounded first
 
@@ -92,7 +85,6 @@ impl ImageMap {
 
     fn down_sample(&self, factor: u32) -> Self {
         //        let idata = self.data;
-        let iwidth = self.width;
         let width = (self.width as f64 / factor as f64) as u32;
         let height = (self.height as f64 / factor as f64) as u32;
         let mut output = ImageMap::new(width, height);
@@ -109,12 +101,9 @@ impl ImageMap {
 
         for y in 0..height {
             for x in 0..width {
-                let i = (y * width + x) * 4;
-
                 let mut r: f64 = 0.0;
                 let mut g: f64 = 0.0;
                 let mut b: f64 = 0.0;
-                let a = 0;
 
                 let mut mr: f64 = 0.0;
                 let mut mg: f64 = 0.0;
@@ -199,7 +188,7 @@ impl Analyzer {
     }
 }
 
-fn analyse(cs: &CropSettings, img: &Image, crop_width: u32, crop_height: u32, real_min_scale: f64) -> Result<Option<ScoredCrop>, String> {
+fn analyse(_cs: &CropSettings, img: &Image, crop_width: u32, crop_height: u32, real_min_scale: f64) -> Result<Option<ScoredCrop>, String> {
     let mut o = ImageMap::new(img.width(), img.height());
 
     edge_detect(img, &mut o);
@@ -263,7 +252,7 @@ fn make_cies(img: &Image) -> Vec<f64> {
     //TODO `cies()` can probably be made RGB member that will make this function redundant
     let w = img.width();
     let h = img.height();
-    let size = (w as u64 * h as u64);
+    let size = w as u64 * h as u64;
 
     let size = if size > usize::max_value() as u64 {
         None
@@ -330,7 +319,6 @@ fn score(o: &ImageMap, crop: &Crop) -> Score {
     let inv_down_sample = 1.0 / down_sample;
     let output_height_down_sample = height * down_sample;
     let output_width_down_sample = width * down_sample;
-    let output_width = width;
 
     let mut skin = 0.0;
     let mut detail = 0.0;
@@ -375,11 +363,11 @@ fn skin_detect(i: &Image, o: &mut ImageMap) {
 
             let nc = if skin > SKIN_THRESHOLD && lightness >= SKIN_BRIGHTNESS_MIN && lightness <= SKIN_BRIGHTNESS_MAX {
                 let r = (skin - SKIN_THRESHOLD) * (255.0 / (1.0 - SKIN_THRESHOLD));
-                let RGB { r: _, g: g, b: b } = o.get(x, y);
+                let RGB { r: _, g, b } = o.get(x, y);
 
                 RGB { r: bounds(r), g, b }
             } else {
-                let RGB { r: _, g: g, b: b } = o.get(x, y);
+                let RGB { r: _, g, b } = o.get(x, y);
                 RGB { r: 0, g, b }
             };
 
@@ -402,10 +390,10 @@ fn saturation_detect(i: &Image, o: &mut ImageMap) {
                 && lightness >= SATURATION_BRIGHTNESS_MIN
                 && lightness <= SATURATION_BRIGHTNESS_MAX {
                 let b = (saturation - SATURATION_THRESHOLD) * (255.0 / (1.0 - SATURATION_THRESHOLD));
-                let RGB { r: r, g: g, b: _ } = o.get(x, y);
+                let RGB { r, g, b: _ } = o.get(x, y);
                 RGB { r, g, b: bounds(b) }
             } else {
-                let RGB { r: r, g: g, b: _ } = o.get(x, y);
+                let RGB { r, g, b: _ } = o.get(x, y);
                 RGB { r, g, b: 0 }
             };
 

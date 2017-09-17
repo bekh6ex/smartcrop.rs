@@ -1,45 +1,11 @@
 use super::*;
 
-
 const WHITE: RGB = RGB { r: 255, g: 255, b: 255 };
 const BLACK: RGB = RGB { r: 0, g: 0, b: 0 };
 const RED: RGB = RGB { r: 255, g: 0, b: 0 };
 const GREEN: RGB = RGB { r: 0, g: 255, b: 0 };
 const BLUE: RGB = RGB { r: 0, g: 0, b: 255 };
 const SKIN: RGB = RGB { r: 255, g: 200, b: 159 };
-
-#[derive(Debug)]
-struct SinglePixelImage {
-    pixel: RGB
-}
-
-impl SinglePixelImage {
-    fn new(pixel: RGB) -> SinglePixelImage {
-        SinglePixelImage { pixel }
-    }
-}
-
-impl Image for SinglePixelImage {
-    fn width(&self) -> u32 {
-        1
-    }
-
-    fn height(&self) -> u32 {
-        1
-    }
-
-    fn resize(&self, width: u32) -> Box<Image> {
-        unimplemented!()
-    }
-
-    fn get(&self, x: u32, y: u32) -> RGB {
-        if x != 0 || y != 0 {
-            panic!("Index overflow. x: {}, y: {}", x, y);
-        }
-
-        self.pixel
-    }
-}
 
 #[derive(Debug, Clone)]
 struct TestImage {
@@ -51,6 +17,9 @@ struct TestImage {
 impl TestImage {
     fn new(w: u32, h: u32, pixels: Vec<Vec<RGB>>) -> TestImage {
         TestImage { w, h, pixels }
+    }
+    fn new_single_pixel(pixel: RGB) -> TestImage {
+        TestImage { w:1, h:1, pixels: vec![vec![pixel]] }
     }
     fn new_from_fn<G>(w: u32, h: u32, generate: G) -> TestImage
         where G: Fn(u32, u32) -> RGB {
@@ -136,7 +105,7 @@ fn crops_test() {
 }
 
 #[test]
-fn score__image_with_single_black_pixel__score_is_zero() {
+fn score_test_image_with_single_black_pixel_then_score_is_zero() {
     let mut i = ImageMap::new(1, 1);
     i.set(0, 0, RGB::new(0, 0, 0));
 
@@ -146,7 +115,7 @@ fn score__image_with_single_black_pixel__score_is_zero() {
 }
 
 #[test]
-fn score__image_with_single_white_pixel__score_is_the_same_as_for_js_version() {
+fn score_test_image_with_single_white_pixel_then_score_is_the_same_as_for_js_version() {
     let mut i = ImageMap::new(1, 1);
     i.set(0, 0, RGB::new(255, 255, 255));
 
@@ -162,17 +131,10 @@ fn score__image_with_single_white_pixel__score_is_the_same_as_for_js_version() {
     assert_eq!(s, js_version_score);
 }
 
-impl RGB {
-    fn round(&self) -> RGB {
-        //TODO Probably should be removed
-        RGB { r: self.r, g: self.g, b: self.b }
-    }
-}
-
 //#[test]
 fn skin_detect_single_pixel_test() {
     let detect_pixel = |color: RGB| {
-        let image = SinglePixelImage::new(color);
+        let image = TestImage::new_single_pixel(color);
         let mut o = ImageMap::new(1, 1);
         o.set(0, 0, color);
 
@@ -185,13 +147,13 @@ fn skin_detect_single_pixel_test() {
     assert_eq!(detect_pixel(RED), RGB::new(0, 0, 0));
     assert_eq!(detect_pixel(GREEN), RGB::new(0, 255, 0));
     assert_eq!(detect_pixel(BLUE), RGB::new(0, 0, 255));
-    assert_eq!(detect_pixel(SKIN).round(), RGB::new(159, 200, 159));
+    assert_eq!(detect_pixel(SKIN), RGB::new(159, 200, 159));
 }
 
 //#[test]
 fn edge_detect_single_pixel_image_test() {
     let edge_detect_pixel = |color: RGB| {
-        let image = SinglePixelImage::new(color);
+        let image = TestImage::new_single_pixel(color);
         let mut o = ImageMap::new(1, 1);
         o.set(0, 0, color);
 
@@ -202,10 +164,10 @@ fn edge_detect_single_pixel_image_test() {
 
     assert_eq!(edge_detect_pixel(BLACK), BLACK);
     assert_eq!(edge_detect_pixel(WHITE), WHITE);
-    assert_eq!(edge_detect_pixel(RED).round(), RGB::new(255, 18, 0));
-    assert_eq!(edge_detect_pixel(GREEN).round(), RGB::new(0, 182, 0));
-    assert_eq!(edge_detect_pixel(BLUE).round(), RGB::new(0, 131, 255));
-    assert_eq!(edge_detect_pixel(SKIN).round(), RGB::new(255, 243, 159));
+    assert_eq!(edge_detect_pixel(RED), RGB::new(255, 18, 0));
+    assert_eq!(edge_detect_pixel(GREEN), RGB::new(0, 182, 0));
+    assert_eq!(edge_detect_pixel(BLUE), RGB::new(0, 131, 255));
+    assert_eq!(edge_detect_pixel(SKIN), RGB::new(255, 243, 159));
 }
 
 //#[test]
@@ -292,7 +254,7 @@ fn find_best_crop_test() {
     let image = TestImage::new_from_fn(
         24,
         8,
-        |x, y| {
+        |x, _| {
             if x < 9 {
                 GREEN
             } else if x < 16 {

@@ -212,10 +212,4 @@ mod tests {
         assert_eq!(4, scaled_crop.width);
         assert_eq!(8, scaled_crop.height);
     }
-
-
-    fn any_score() -> Score {
-        Score { detail: 1.0, saturation: 2.0, skin: 3.0, total: 6.0 }
-    }
-
 }
