@@ -15,20 +15,17 @@ const SKIN: RGB = RGB { r: 255, g: 200, b: 159 };
 struct BenchImage {
     w: u32,
     h: u32,
-    pixels: Vec<Vec<RGB>>
+    pixels: [[RGB;24];8]
 }
 
 impl BenchImage {
-    fn new(w: u32, h: u32, pixels: Vec<Vec<RGB>>) -> BenchImage {
-        BenchImage { w, h, pixels }
-    }
     fn new_from_fn<G>(w: u32, h: u32, generate: G) -> BenchImage
         where G: Fn(u32, u32) -> RGB {
-        let mut pixels = vec![vec![WHITE; h as usize]; w as usize];
+        let mut pixels = [[WHITE;24];8];
 
         for y in 0..h {
             for x in 0..w {
-                pixels[x as usize][y as usize] = generate(x as u32, y as u32)
+                pixels[y as usize][x as usize] = generate(x as u32, y as u32)
             }
         }
 
@@ -55,7 +52,7 @@ impl Image for BenchImage {
     }
 
     fn get(&self, x: u32, y: u32) -> RGB {
-        self.pixels[x as usize][y as usize]
+        self.pixels[y as usize][x as usize]
     }
 }
 
@@ -74,8 +71,8 @@ fn bench_find_best_crop(b: &mut Bencher) {
             }
         }
     );
-    let analyzer = Analyzer::new(CropSettings::default());
 
+    let analyzer = Analyzer::new(CropSettings::default());
 
     b.iter(|| {
         analyzer.find_best_crop(&image, 8, 8).unwrap();
