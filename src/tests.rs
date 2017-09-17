@@ -1,5 +1,8 @@
 use super::*;
 
+// All the "unobvious" numbers in tests were acquired by running same code in smartcrop.js
+// Used smartcrop.js commit: 623d271ad8faf24d78f9364fcc86b5132a368576
+
 const WHITE: RGB = RGB { r: 255, g: 255, b: 255 };
 const BLACK: RGB = RGB { r: 0, g: 0, b: 0 };
 const RED: RGB = RGB { r: 255, g: 0, b: 0 };
@@ -131,7 +134,7 @@ fn score_test_image_with_single_white_pixel_then_score_is_the_same_as_for_js_ver
     assert_eq!(s, js_version_score);
 }
 
-//#[test]
+#[test]
 fn skin_detect_single_pixel_test() {
     let detect_pixel = |color: RGB| {
         let image = TestImage::new_single_pixel(color);
@@ -150,7 +153,7 @@ fn skin_detect_single_pixel_test() {
     assert_eq!(detect_pixel(SKIN), RGB::new(159, 200, 159));
 }
 
-//#[test]
+#[test]
 fn edge_detect_single_pixel_image_test() {
     let edge_detect_pixel = |color: RGB| {
         let image = TestImage::new_single_pixel(color);
@@ -170,7 +173,7 @@ fn edge_detect_single_pixel_image_test() {
     assert_eq!(edge_detect_pixel(SKIN), RGB::new(255, 243, 159));
 }
 
-//#[test]
+#[test]
 fn edge_detect_3x3() {
     let image = TestImage::new(
         3,
@@ -188,11 +191,11 @@ fn edge_detect_3x3() {
     assert_eq!(o.get(0, 0), RGB { r: 255, g: 18, b: 0 });
     assert_eq!(o.get(0, 0), RGB { r: 255, g: 18, b: 0 });
     assert_eq!(o.get(1, 0), RGB { r: 0, g: 182, b: 0 });
-    assert_eq!(o.get(2, 0), RGB { r: 0, g: 130, b: 255 });
+    assert_eq!(o.get(2, 0), RGB { r: 0, g: 131, b: 255 });
     assert_eq!(o.get(0, 1), RGB { r: 0, g: 182, b: 0 });
     assert_eq!(o.get(1, 1), RGB { r: 0, g: 121, b: 255 });
     assert_eq!(o.get(2, 1), RGB { r: 255, g: 18, b: 0 });
-    assert_eq!(o.get(0, 2), RGB { r: 0, g: 130, b: 255 });
+    assert_eq!(o.get(0, 2), RGB { r: 0, g: 131, b: 255 });
     assert_eq!(o.get(1, 2), RGB { r: 255, g: 18, b: 0 });
     assert_eq!(o.get(2, 2), RGB { r: 0, g: 182, b: 0 });
 }
