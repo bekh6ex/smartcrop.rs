@@ -10,3 +10,7 @@ matrix:
     - rust: nightly
 
 cache: cargo
+
+script:
+  - cargo update
+  - ./.travis/run.sh "$TRAVIS_RUST_VERSION"
