@@ -8,16 +8,8 @@ use smartcrop::*;
 
 
 const WHITE: RGB = RGB { r: 255, g: 255, b: 255 };
-const BLACK: RGB = RGB { r: 0, g: 0, b: 0 };
-const RED: RGB = RGB { r: 255, g: 0, b: 0 };
 const GREEN: RGB = RGB { r: 0, g: 255, b: 0 };
-const BLUE: RGB = RGB { r: 0, g: 0, b: 255 };
 const SKIN: RGB = RGB { r: 255, g: 200, b: 159 };
-
-#[derive(Debug)]
-struct SinglePixelImage {
-    pixel: RGB
-}
 
 #[derive(Debug, Clone)]
 struct BenchImage {
