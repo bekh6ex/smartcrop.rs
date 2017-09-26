@@ -3,8 +3,8 @@ TOOLCHAIN="${1:-nightly}"
 
 set -e
 
-run_cargo build
-run_cargo test
+cargo build
+cargo test
 if [ "$TOOLCHAIN" == "nightly" ]; then
-            run_cargo bench
+    cargo bench
 fi
