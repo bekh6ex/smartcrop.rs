@@ -171,7 +171,7 @@ impl Analyzer {
 
         // resize image for faster processing
         if PRESCALE {
-            let f = PRESCALE_MIN / f64::min((img.width() as f64), (img.height() as f64));
+            let f = PRESCALE_MIN / f64::min(img.width() as f64, img.height() as f64);
             let prescalefactor = if f < 1.0 { f } else { 1.0 };
 
             let crop_width = chop(width * scale * prescalefactor) as u32;
