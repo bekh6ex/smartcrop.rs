@@ -8,7 +8,7 @@ use std;
 impl<I, P> Image for I
     where I: GenericImage<Pixel=P> + Clone + 'static,
           P: Pixel<Subpixel=u8> + 'static {
-    type ResizeToImage = self::image_ext::ImageBuffer<P, std::vec::Vec<u8>>;
+    type ResizeToImage = self::image_ext::ImageBuffer<P, std::vec::Vec<P::Subpixel>>;
 
 
     fn width(&self) -> u32 {
