@@ -66,6 +66,11 @@ struct ImageMap {
 
 impl ImageMap {
     fn new(width: u32, height: u32) -> ImageMap {
+
+        if width == 0 || height == 0 {
+            panic!("ImageMap cannot have zero width/height");
+        }
+
         let white = RGB::new(255, 255, 255);
         let pixels = vec![vec![white; height as usize]; width as usize];
         ImageMap {
@@ -153,6 +158,8 @@ impl Analyzer {
         if width == 0 && height == 0 {
             return Err("Expect either a height or width".to_owned());
         }
+        //TODO Image cannot have zero width and/or height
+
         let width = width as f64;
         let height = height as f64;
 
@@ -163,7 +170,7 @@ impl Analyzer {
 
         let crop_width = chop(width * scale * prescalefactor) as u32;
         let crop_height = chop(height * scale * prescalefactor) as u32;
-        let real_min_scale = f64::min(MAX_SCALE, f64::max(1.0 / scale, MIN_SCALE));
+        let real_min_scale = calculate_real_min_scale(scale);
 
         if PRESCALE {
             let f = PRESCALE_MIN / f64::min((img.width() as f64), (img.height() as f64));
@@ -188,7 +195,12 @@ impl Analyzer {
     }
 }
 
+fn calculate_real_min_scale(scale: f64) -> f64 {
+    f64::min(MAX_SCALE, f64::max(1.0 / scale, MIN_SCALE))
+}
+
 fn analyse(_cs: &CropSettings, img: &Image, crop_width: u32, crop_height: u32, real_min_scale: f64) -> Result<Option<ScoredCrop>, String> {
+    //TODO crop_width and/or crop_height should never be zero?
     let mut o = ImageMap::new(img.width(), img.height());
 
     edge_detect(img, &mut o);
@@ -285,15 +297,19 @@ fn crops(i: &ImageMap, crop_width: u32, crop_height: u32, real_min_scale: f64) -
     let crop_w = if crop_width != 0 { crop_width as f64 } else { min_dimension };
     let crop_h = if crop_height != 0 { crop_height as f64 } else { min_dimension };
 
+    let y_step = STEP.min(height);
+    let x_step = STEP.min(width);
+
+
     let mut scale = MAX_SCALE;
     loop {
         if scale < real_min_scale {
             break;
-        }
+        };
 
-        for y in (0..).map(|i: u32| i as f64 * STEP)
+        for y in (0..).map(|i: u32| i as f64 * y_step)
                       .take_while(|y| y + crop_h * scale <= height) {
-            for x in (0..).map(|i: u32| i as f64 * STEP)
+            for x in (0..).map(|i: u32| i as f64 * x_step)
                           .take_while(|x| x + crop_w * scale <= width) {
                 crops.push(Crop {
                     x: x as u32,
@@ -302,11 +318,11 @@ fn crops(i: &ImageMap, crop_width: u32, crop_height: u32, real_min_scale: f64) -
                     height: (crop_h * scale) as u32,
 
                 });
-            }
-        }
+            };
+        };
 
         scale -= SCALE_STEP;
-    }
+    };
 
     crops
 }
