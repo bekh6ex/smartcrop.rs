@@ -64,15 +64,15 @@ impl Image for TestImage {
         self.h
     }
 
-    fn resize(&self, width: u32) -> Box<TestImage> {
+    fn resize(&self, width: u32) -> TestImage {
         if width == self.w {
-            return Box::new(self.clone());
+            return self.clone();
         }
 
         let height = (self.h as f64 * width as f64 / self.w as f64).round() as u32;
 
         //TODO Implement more or less correct resizing
-        return Box::new(TestImage{w: width, h: height, pixels: self.pixels.clone()});
+        return TestImage{w: width, h: height, pixels: self.pixels.clone()};
     }
 
     fn get(&self, x: u32, y: u32) -> RGB {

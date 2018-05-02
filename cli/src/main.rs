@@ -48,14 +48,14 @@ impl smartcrop::Image for SmartCropImage {
         self.image.dimensions().1
     }
 
-    fn resize(&self, width: u32) -> Box<Self> {
+    fn resize(&self, width: u32) -> Self {
         if width == self.width() {
-            return Box::new(self.clone());
+            return self.clone();
         }
 
         let resized = self.image.resize(width, self.height(), FilterType::Lanczos3);
 
-        Box::new(SmartCropImage{image:resized})
+        SmartCropImage{image:resized}
     }
 
     fn get(&self, x: u32, y: u32) -> RGB {

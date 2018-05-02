@@ -34,7 +34,7 @@ pub trait Image: Sized {
 
     fn width(&self) -> u32;
     fn height(&self) -> u32;
-    fn resize(&self, width: u32) -> Box<Self::ResizeToImage>;
+    fn resize(&self, width: u32) -> Self::ResizeToImage;
     fn get(&self, x: u32, y: u32) -> RGB;
 }
 
@@ -178,9 +178,9 @@ impl Analyzer {
 
             let resize_result = img.resize(((img.width() as f64) * prescalefactor).round() as u32);
 
-            let img = resize_result.as_ref();
+            let img = resize_result;
 
-            let top_crop = try!(analyse(&self.settings, img, crop_width, crop_height, real_min_scale)).unwrap();
+            let top_crop = try!(analyse(&self.settings, &img, crop_width, crop_height, real_min_scale)).unwrap();
 
             Ok(top_crop.scale(1.0 / prescalefactor))
         } else {
