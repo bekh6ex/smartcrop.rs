@@ -168,10 +168,6 @@ impl Analyzer {
         // resize image for faster processing
         let prescalefactor = 1.0;
 
-        let crop_width = chop(width * scale * prescalefactor) as u32;
-        let crop_height = chop(height * scale * prescalefactor) as u32;
-        let real_min_scale = calculate_real_min_scale(scale);
-
         if PRESCALE {
             let f = PRESCALE_MIN / f64::min((img.width() as f64), (img.height() as f64));
             let prescalefactor = if f < 1.0 {
@@ -180,7 +176,11 @@ impl Analyzer {
                 prescalefactor
             };
 
-            let resize_result = img.resize(((img.width() as f64) * prescalefactor) as u32);
+            let crop_width = chop(width * scale * prescalefactor) as u32;
+            let crop_height = chop(height * scale * prescalefactor) as u32;
+            let real_min_scale = calculate_real_min_scale(scale);
+
+            let resize_result = img.resize(((img.width() as f64) * prescalefactor).round() as u32);
 
             let img = resize_result.as_ref();
 
@@ -188,6 +188,10 @@ impl Analyzer {
 
             Ok(top_crop.scale(1.0 / prescalefactor))
         } else {
+            let crop_width = chop(width * scale * prescalefactor) as u32;
+            let crop_height = chop(height * scale * prescalefactor) as u32;
+            let real_min_scale = calculate_real_min_scale(scale);
+
             let top_crop = try!(analyse(&self.settings, img, crop_width, crop_height, real_min_scale));
             //TODO check
             Ok(top_crop.unwrap())
@@ -200,7 +204,12 @@ fn calculate_real_min_scale(scale: f64) -> f64 {
 }
 
 fn analyse(_cs: &CropSettings, img: &Image, crop_width: u32, crop_height: u32, real_min_scale: f64) -> Result<Option<ScoredCrop>, String> {
-    //TODO crop_width and/or crop_height should never be zero?
+
+    assert!(img.width() >= crop_width);
+    assert!(img.height() >= crop_height);
+    assert!(crop_width > 0 );
+    assert!(crop_height > 0 );
+
     let mut o = ImageMap::new(img.width(), img.height());
 
     edge_detect(img, &mut o);

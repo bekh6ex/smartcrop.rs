@@ -67,7 +67,10 @@ impl Image for TestImage {
             return Box::new(self.clone());
         }
 
-        unimplemented!()
+        let height = (self.h as f64 * width as f64 / self.w as f64).round() as u32;
+
+        //TODO Implement more or less correct resizing
+        return Box::new(TestImage{w: width, h: height, pixels: self.pixels.clone()});
     }
 
     fn get(&self, x: u32, y: u32) -> RGB {
@@ -279,6 +282,22 @@ fn find_best_crop_test() {
     assert_eq!(crop.score.saturation, -0.3337408688965783);
     assert_eq!(crop.score.skin, -0.13811572472126107);
     assert_eq!(crop.score.total, -0.018073997837867173);
+}
+
+
+#[test]
+fn find_best_crop_wrong_rounding_test() {
+    let image = TestImage::new_from_fn(
+        640,
+        426,
+        |_, _| { WHITE }
+    );
+    let analyzer = Analyzer::new(CropSettings::default());
+
+    let crop = analyzer.find_best_crop(&image, 10, 10).unwrap();
+
+    assert_eq!(crop.crop.width, 426);
+    assert_eq!(crop.crop.height, 426);
 }
 
 #[test]
