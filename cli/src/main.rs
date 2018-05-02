@@ -38,6 +38,8 @@ fn main() {
 struct SmartCropImage { image: DynamicImage }
 
 impl smartcrop::Image for SmartCropImage {
+    type ResizeToImage = Self;
+
     fn width(&self) -> u32 {
         self.image.dimensions().0
     }
@@ -46,7 +48,7 @@ impl smartcrop::Image for SmartCropImage {
         self.image.dimensions().1
     }
 
-    fn resize(&self, width: u32) -> Box<smartcrop::Image> {
+    fn resize(&self, width: u32) -> Box<Self> {
         if width == self.width() {
             return Box::new(self.clone());
         }

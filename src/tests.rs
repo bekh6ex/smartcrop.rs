@@ -39,7 +39,7 @@ impl TestImage {
 }
 
 impl ImageMap {
-    fn from_image(image: &Image) -> ImageMap {
+    fn from_image<I: Image>(image: &I) -> ImageMap {
         let mut image_map = ImageMap::new(image.width(), image.height());
 
         for y in 0..image.height() {
@@ -54,6 +54,8 @@ impl ImageMap {
 }
 
 impl Image for TestImage {
+    type ResizeToImage = TestImage;
+
     fn width(&self) -> u32 {
         self.w
     }
@@ -62,7 +64,7 @@ impl Image for TestImage {
         self.h
     }
 
-    fn resize(&self, width: u32) -> Box<Image> {
+    fn resize(&self, width: u32) -> Box<TestImage> {
         if width == self.w {
             return Box::new(self.clone());
         }

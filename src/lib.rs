@@ -29,10 +29,12 @@ const SATURATION_THRESHOLD: f64 = 0.4;
 
 //TODO Check all `as uXX` casts. Should be rounded first
 
-pub trait Image {
+pub trait Image: Sized {
+    type ResizeToImage: Image;
+
     fn width(&self) -> u32;
     fn height(&self) -> u32;
-    fn resize(&self, width: u32) -> Box<Image>;
+    fn resize(&self, width: u32) -> Box<Self::ResizeToImage>;
     fn get(&self, x: u32, y: u32) -> RGB;
 }
 
@@ -197,7 +199,7 @@ fn calculate_real_min_scale(scale: f64) -> f64 {
     f64::min(MAX_SCALE, f64::max(1.0 / scale, MIN_SCALE))
 }
 
-fn analyse(_cs: &CropSettings, img: &Image, crop_width: u32, crop_height: u32, real_min_scale: f64) -> Result<Option<ScoredCrop>, String> {
+fn analyse<I: Image>(_cs: &CropSettings, img: &I, crop_width: u32, crop_height: u32, real_min_scale: f64) -> Result<Option<ScoredCrop>, String> {
 
     assert!(img.width() >= crop_width);
     assert!(img.height() >= crop_height);
@@ -234,7 +236,7 @@ fn analyse(_cs: &CropSettings, img: &Image, crop_width: u32, crop_height: u32, r
     Ok(top_crop)
 }
 
-fn edge_detect(i: &Image, o: &mut ImageMap) {
+fn edge_detect<I: Image>(i: &I, o: &mut ImageMap) {
     //TODO check type casts if those are safe
 
     let w = i.width() as usize;
@@ -263,7 +265,7 @@ fn edge_detect(i: &Image, o: &mut ImageMap) {
     }
 }
 
-fn make_cies(img: &Image) -> Vec<f64> {
+fn make_cies<I: Image>(img: &I) -> Vec<f64> {
     //TODO `cies()` can probably be made RGB member that will make this function redundant
     let w = img.width();
     let h = img.height();
@@ -371,7 +373,7 @@ fn score(o: &ImageMap, crop: &Crop) -> Score {
     }
 }
 
-fn skin_detect(i: &Image, o: &mut ImageMap) {
+fn skin_detect<I: Image>(i: &I, o: &mut ImageMap) {
     let w = i.width();
     let h = i.height();
 
@@ -395,7 +397,7 @@ fn skin_detect(i: &Image, o: &mut ImageMap) {
     }
 }
 
-fn saturation_detect(i: &Image, o: &mut ImageMap) {
+fn saturation_detect<I: Image>(i: &I, o: &mut ImageMap) {
     let w = i.width();
     let h = i.height();
 
