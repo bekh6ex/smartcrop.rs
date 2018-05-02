@@ -9,4 +9,8 @@ include = [
     "Cargo.toml",
 ]
 
+[features]
+default =["image"]
+
 [dependencies]
+image = { version = "*", optional = true }

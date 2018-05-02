@@ -1,6 +1,8 @@
+
 mod math;
 
 use self::math::*;
+
 
 const PRESCALE: bool = true;
 const PRESCALE_MIN: f64 = 400.00;
@@ -422,6 +424,9 @@ fn saturation_detect<I: Image>(i: &I, o: &mut ImageMap) {
         }
     }
 }
+
+#[cfg(feature="image")]
+mod image;
 
 #[cfg(test)]
 mod tests;

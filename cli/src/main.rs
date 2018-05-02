@@ -1,14 +1,12 @@
 extern crate smartcrop;
 
-use smartcrop::{CropSettings, Analyzer, RGB};
+use smartcrop::{CropSettings, Analyzer};
 
 extern crate clap;
 
-use clap::{Arg, App, SubCommand};
+use clap::{Arg, App};
 
 extern crate image;
-
-use image::{GenericImage, ImageBuffer, DynamicImage, FilterType};
 
 fn main() {
     let an: Analyzer = Analyzer::new(CropSettings::default());
@@ -25,44 +23,11 @@ fn main() {
     // ```open``` returns a `DynamicImage` on success.
     let mut img = image::open(file_in).unwrap();
 
-    let crop = an.find_best_crop(&SmartCropImage{image:img.clone()}, 10, 10).unwrap().crop;
+    let crop = an.find_best_crop(&img, 10, 10).unwrap().crop;
 
     let cropped = img.crop(crop.x, crop.y, crop.width, crop.height);
 
     cropped.save(file_out).unwrap();
 
     println!("{:?}", crop)
-}
-
-#[derive(Clone)]
-struct SmartCropImage { image: DynamicImage }
-
-impl smartcrop::Image for SmartCropImage {
-    type ResizeToImage = Self;
-
-    fn width(&self) -> u32 {
-        self.image.dimensions().0
-    }
-
-    fn height(&self) -> u32 {
-        self.image.dimensions().1
-    }
-
-    fn resize(&self, width: u32) -> Self {
-        if width == self.width() {
-            return self.clone();
-        }
-
-        let resized = self.image.resize(width, self.height(), FilterType::Lanczos3);
-
-        SmartCropImage{image:resized}
-    }
-
-    fn get(&self, x: u32, y: u32) -> RGB {
-        let px = self.image.get_pixel(x, y);
-        let r = px[0];
-        let g = px[1];
-        let b = px[2];
-        RGB{r,g,b}
-    }
 }
