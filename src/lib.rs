@@ -154,7 +154,7 @@ impl Analyzer {
         Analyzer { settings }
     }
 
-    pub fn find_best_crop(&self, img: &Image, width: u32, height: u32) -> Result<ScoredCrop, String> {
+    pub fn find_best_crop<I: Image>(&self, img: &I, width: u32, height: u32) -> Result<ScoredCrop, String> {
         if width == 0 && height == 0 {
             return Err("Expect either a height or width".to_owned());
         }
@@ -166,15 +166,9 @@ impl Analyzer {
         let scale = f64::min((img.width() as f64) / width, (img.height() as f64) / height);
 
         // resize image for faster processing
-        let prescalefactor = 1.0;
-
         if PRESCALE {
             let f = PRESCALE_MIN / f64::min((img.width() as f64), (img.height() as f64));
-            let prescalefactor = if f < 1.0 {
-                f
-            } else {
-                prescalefactor
-            };
+            let prescalefactor = if f < 1.0 { f } else { 1.0 };
 
             let crop_width = chop(width * scale * prescalefactor) as u32;
             let crop_height = chop(height * scale * prescalefactor) as u32;
@@ -188,8 +182,8 @@ impl Analyzer {
 
             Ok(top_crop.scale(1.0 / prescalefactor))
         } else {
-            let crop_width = chop(width * scale * prescalefactor) as u32;
-            let crop_height = chop(height * scale * prescalefactor) as u32;
+            let crop_width = chop(width * scale) as u32;
+            let crop_height = chop(height * scale) as u32;
             let real_min_scale = calculate_real_min_scale(scale);
 
             let top_crop = try!(analyse(&self.settings, img, crop_width, crop_height, real_min_scale));
