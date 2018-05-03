@@ -206,8 +206,7 @@ fn analyse<I: Image>(_cs: &CropSettings, img: &I, crop_width: u32, crop_height: 
 
     assert!(img.width() >= crop_width);
     assert!(img.height() >= crop_height);
-    assert!(crop_width > 0 );
-    assert!(crop_height > 0 );
+    assert!(crop_width > 0 || crop_height > 0);
 
     let mut o = ImageMap::new(img.width(), img.height());
 
