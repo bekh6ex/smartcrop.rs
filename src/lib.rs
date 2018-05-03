@@ -32,12 +32,13 @@ const SATURATION_THRESHOLD: f64 = 0.4;
 //TODO Check all `as uXX` casts. Should be rounded first
 
 pub trait Image: Sized {
-    type ResizeToImage: Image;
-
     fn width(&self) -> u32;
     fn height(&self) -> u32;
-    fn resize(&self, width: u32) -> Self::ResizeToImage;
     fn get(&self, x: u32, y: u32) -> RGB;
+}
+
+pub trait ResizableImage<I: Image> {
+    fn resize(&self, width: u32) -> I;
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -158,7 +159,7 @@ impl Analyzer {
         Analyzer { settings }
     }
 
-    pub fn find_best_crop<I: Image>(&self, img: &I, width: u32, height: u32) -> Result<ScoredCrop, String> {
+    pub fn find_best_crop<I: Image+ResizableImage<RI>, RI: Image>(&self, img: &I, width: u32, height: u32) -> Result<ScoredCrop, String> {
         if width == 0 && height == 0 {
             return Err("Expect either a height or width".to_owned());
         }

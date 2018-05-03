@@ -1,14 +1,14 @@
 extern crate image as image_ext;
 
-use self::image_ext::{FilterType, GenericImage, Pixel, imageops};
+use self::image_ext::{FilterType, GenericImage, Pixel, imageops, ImageBuffer};
 use RGB;
 use Image;
 use std;
+use ResizableImage;
 
 impl<I, P> Image for I
-    where I: GenericImage<Pixel=P> + Clone + 'static,
+    where I: GenericImage<Pixel=P> + 'static,
           P: Pixel<Subpixel=u8> + 'static {
-    type ResizeToImage = self::image_ext::ImageBuffer<P, std::vec::Vec<P::Subpixel>>;
 
 
     fn width(&self) -> u32 {
@@ -19,12 +19,6 @@ impl<I, P> Image for I
         GenericImage::height(self)
     }
 
-    fn resize(&self, width: u32) -> Self::ResizeToImage {
-        let height = (width as f64 / GenericImage::width(self) as f64 * GenericImage::height(self) as f64).round() as u32;
-
-        imageops::resize(self, width, height, FilterType::Lanczos3)
-    }
-
     fn get(&self, x: u32, y: u32) -> RGB {
         let px = self.get_pixel(x, y).to_rgb();
 
@@ -32,5 +26,16 @@ impl<I, P> Image for I
         let g = px[1];
         let b = px[2];
         RGB{r,g,b}
+    }
+}
+
+impl<I, P> ResizableImage<ImageBuffer<P, std::vec::Vec<u8>>> for I
+    where I: GenericImage<Pixel=P> + 'static,
+          P: Pixel<Subpixel=u8> + 'static {
+
+    fn resize(&self, width: u32) -> ImageBuffer<P, std::vec::Vec<u8>> {
+        let height = (width as f64 / self.width() as f64 * self.height() as f64).round() as u32;
+
+        imageops::resize(self, width, height, FilterType::Lanczos3)
     }
 }

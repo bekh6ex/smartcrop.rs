@@ -54,7 +54,6 @@ impl ImageMap {
 }
 
 impl Image for TestImage {
-    type ResizeToImage = TestImage;
 
     fn width(&self) -> u32 {
         self.w
@@ -64,6 +63,12 @@ impl Image for TestImage {
         self.h
     }
 
+    fn get(&self, x: u32, y: u32) -> RGB {
+        self.pixels[x as usize][y as usize]
+    }
+}
+
+impl ResizableImage<TestImage> for TestImage {
     fn resize(&self, width: u32) -> TestImage {
         if width == self.w {
             return self.clone();
@@ -75,9 +80,6 @@ impl Image for TestImage {
         return TestImage{w: width, h: height, pixels: self.pixels.clone()};
     }
 
-    fn get(&self, x: u32, y: u32) -> RGB {
-        self.pixels[x as usize][y as usize]
-    }
 }
 
 //    impl<'a> From<&'a Image> for ImageMap {
