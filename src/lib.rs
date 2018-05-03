@@ -315,10 +315,10 @@ fn crops(i: &ImageMap, crop_width: u32, crop_height: u32, real_min_scale: f64) -
             break;
         };
 
-        for y in (0..).map(|i: u32| i as f64 * y_step)
-                      .take_while(|y| y + crop_h * scale <= height) {
-            for x in (0..).map(|i: u32| i as f64 * x_step)
-                          .take_while(|x| x + crop_w * scale <= width) {
+        let stepping = |step| (0..).map(f64::from).map(move |i| i * step);
+
+        for y in stepping(y_step).take_while(|y| y + crop_h * scale <= height) {
+            for x in stepping(x_step).take_while(|x| x + crop_w * scale <= width) {
                 crops.push(Crop {
                     x: x as u32,
                     y: y as u32,
