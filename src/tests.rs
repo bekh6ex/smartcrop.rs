@@ -1,4 +1,6 @@
 use super::*;
+use proptest::prelude::*;
+use proptest::test_runner::Config;
 
 // All the "unobvious" numbers in tests were acquired by running same code in smartcrop.js
 // Used smartcrop.js commit: 623d271ad8faf24d78f9364fcc86b5132a368576
@@ -21,9 +23,11 @@ impl TestImage {
     fn new(w: u32, h: u32, pixels: Vec<Vec<RGB>>) -> TestImage {
         TestImage { w, h, pixels }
     }
+
     fn new_single_pixel(pixel: RGB) -> TestImage {
         TestImage { w:1, h:1, pixels: vec![vec![pixel]] }
     }
+
     fn new_from_fn<G>(w: u32, h: u32, generate: G) -> TestImage
         where G: Fn(u32, u32) -> RGB {
         let mut pixels = vec![vec![WHITE; h as usize]; w as usize];
@@ -33,6 +37,12 @@ impl TestImage {
                 pixels[x as usize][y as usize] = generate(x as u32, y as u32)
             }
         }
+
+        TestImage { w, h, pixels }
+    }
+
+    fn new_white(w: u32, h: u32) -> TestImage {
+        let mut pixels = vec![vec![WHITE; h as usize]; w as usize];
 
         TestImage { w, h, pixels }
     }
@@ -81,10 +91,6 @@ impl ResizableImage<TestImage> for TestImage {
     }
 
 }
-
-//    impl<'a> From<&'a Image> for ImageMap {
-//
-//    }
 
 #[test]
 fn image_map_test() {
@@ -288,7 +294,6 @@ fn find_best_crop_test() {
     assert_eq!(crop.score.total, -0.018073997837867173);
 }
 
-
 #[test]
 fn find_best_crop_wrong_rounding_test() {
     let image = TestImage::new_from_fn(
@@ -302,6 +307,25 @@ fn find_best_crop_wrong_rounding_test() {
 
     assert_eq!(crop.crop.width, 426);
     assert_eq!(crop.crop.height, 426);
+}
+
+#[test]
+fn find_best_crop_zerosized_image_gives_error() {
+    let image = TestImage::new_white(0,0);
+    let analyzer = Analyzer::new(CropSettings::default());
+
+    let result = analyzer.find_best_crop(&image, 1, 1);
+
+    assert_eq!(Error::ZeroSizedImage, result.unwrap_err());
+}
+
+#[test]
+// If image dimension is less than SCORE_DOWN_SAMPLE
+fn find_best_crop_on_tiny_image_should_not_panic() {
+    let image = TestImage::new_white(1,1);
+    let analyzer = Analyzer::new(CropSettings::default());
+
+    analyzer.find_best_crop(&image, 1, 1);
 }
 
 #[test]
@@ -323,4 +347,25 @@ fn down_sample_test() {
     assert_eq!(result.width, 1);
     assert_eq!(result.height, 1);
     assert_eq!(result.get(0, 0), RGB::new(184, 132, 103));
+}
+
+fn white_image(max_dimension: u32) -> BoxedStrategy<TestImage> {
+    (0..max_dimension, 0..max_dimension)
+        .prop_map(|(w, h)| TestImage::new_white(w, h))
+        .boxed()
+}
+
+
+proptest! {
+    #![proptest_config(Config::with_cases(100))]
+    #[test]
+    fn doesnt_crash(
+        ref image in white_image(2000),
+        crop_w in 0u32..2000,
+        crop_h in 0u32..2000
+    ) {
+        let analyzer = Analyzer::new(CropSettings::default());
+
+        let crop = analyzer.find_best_crop(image, crop_w, crop_h);
+    }
 }

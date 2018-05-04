@@ -14,3 +14,6 @@ default =["image"]
 
 [dependencies]
 image = { version = "*", optional = true }
+
+[dev-dependencies]
+proptest = "^0.7.0"

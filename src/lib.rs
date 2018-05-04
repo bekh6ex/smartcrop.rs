@@ -41,6 +41,12 @@ pub trait ResizableImage<I: Image> {
     fn resize(&self, width: u32) -> I;
 }
 
+#[derive(PartialEq, Debug)]
+pub enum Error {
+    ZeroSizedImage,
+    WidthOrHeightAreNotGiven,
+}
+
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct RGB {
     pub r:u8,
@@ -93,8 +99,12 @@ impl ImageMap {
         self.pixels[x as usize][y as usize]
     }
 
-    fn down_sample(&self, factor: u32) -> Self {
+    fn down_sample(self, factor: u32) -> Self {
         //        let idata = self.data;
+        if (self.width < factor || self.height < factor) {
+            return self;
+        }
+
         let width = (self.width as f64 / factor as f64) as u32;
         let height = (self.height as f64 / factor as f64) as u32;
         let mut output = ImageMap::new(width, height);
@@ -159,11 +169,13 @@ impl Analyzer {
         Analyzer { settings }
     }
 
-    pub fn find_best_crop<I: Image+ResizableImage<RI>, RI: Image>(&self, img: &I, width: u32, height: u32) -> Result<ScoredCrop, String> {
+    pub fn find_best_crop<I: Image+ResizableImage<RI>, RI: Image>(&self, img: &I, width: u32, height: u32) -> Result<ScoredCrop, Error> {
         if width == 0 && height == 0 {
-            return Err("Expect either a height or width".to_owned());
+            return Err(Error::WidthOrHeightAreNotGiven);
         }
-        //TODO Image cannot have zero width and/or height
+        if img.width() == 0 || img.height() == 0 {
+            return Err(Error::ZeroSizedImage);
+        }
 
         let width = width as f64;
         let height = height as f64;
@@ -183,7 +195,8 @@ impl Analyzer {
 
             let img = resize_result;
 
-            let top_crop = try!(analyse(&self.settings, &img, crop_width, crop_height, real_min_scale)).unwrap();
+            let top_crop = analyse(&self.settings, &img, crop_width, crop_height, real_min_scale)?
+                .unwrap();
 
             Ok(top_crop.scale(1.0 / prescalefactor))
         } else {
@@ -202,7 +215,7 @@ fn calculate_real_min_scale(scale: f64) -> f64 {
     f64::min(MAX_SCALE, f64::max(1.0 / scale, MIN_SCALE))
 }
 
-fn analyse<I: Image>(_cs: &CropSettings, img: &I, crop_width: u32, crop_height: u32, real_min_scale: f64) -> Result<Option<ScoredCrop>, String> {
+fn analyse<I: Image>(_cs: &CropSettings, img: &I, crop_width: u32, crop_height: u32, real_min_scale: f64) -> Result<Option<ScoredCrop>, Error> {
 
     assert!(img.width() >= crop_width);
     assert!(img.height() >= crop_height);
@@ -427,6 +440,10 @@ fn saturation_detect<I: Image>(i: &I, o: &mut ImageMap) {
 
 #[cfg(feature="image")]
 mod image;
+
+#[cfg(test)]
+#[macro_use]
+extern crate proptest;
 
 #[cfg(test)]
 mod tests;
