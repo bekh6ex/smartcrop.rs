@@ -42,7 +42,7 @@ impl TestImage {
     }
 
     fn new_white(w: u32, h: u32) -> TestImage {
-        let mut pixels = vec![vec![WHITE; h as usize]; w as usize];
+        let pixels = vec![vec![WHITE; h as usize]; w as usize];
 
         TestImage { w, h, pixels }
     }
@@ -61,6 +61,7 @@ impl ImageMap {
 
         image_map
     }
+
 }
 
 impl Image for TestImage {
@@ -352,7 +353,7 @@ fn find_best_crop_on_tiny_image_should_not_panic() {
     let image = TestImage::new_white(1,1);
     let analyzer = Analyzer::new(CropSettings::default());
 
-    analyzer.find_best_crop(&image, 1, 1);
+    let _ = analyzer.find_best_crop(&image, 1, 1);
 }
 
 #[test]
@@ -393,6 +394,6 @@ proptest! {
     ) {
         let analyzer = Analyzer::new(CropSettings::default());
 
-        let crop = analyzer.find_best_crop(image, crop_w, crop_h);
+        let _crop = analyzer.find_best_crop(image, crop_w, crop_h);
     }
 }

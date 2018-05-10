@@ -101,7 +101,7 @@ impl ImageMap {
 
     fn down_sample(self, factor: u32) -> Self {
         //        let idata = self.data;
-        if (self.width < factor || self.height < factor) {
+        if self.width < factor || self.height < factor {
             return self;
         }
 
