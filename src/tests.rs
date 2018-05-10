@@ -92,6 +92,33 @@ impl ResizableImage<TestImage> for TestImage {
 
 }
 
+#[derive(Clone, Debug)]
+struct SingleColorImage {
+    w: u32,
+    h: u32,
+    color: RGB,
+}
+
+impl Image for SingleColorImage {
+    fn width(&self) -> u32 { self.w }
+
+    fn height(&self) -> u32 { self.h }
+
+    fn get(&self, _x: u32, _y: u32) -> RGB { self.color }
+}
+
+impl ResizableImage<SingleColorImage> for SingleColorImage {
+    fn resize(&self, width: u32) -> SingleColorImage {
+        if width == self.w {
+            return self.clone();
+        }
+
+        let height = (self.h as f64 * width as f64 / self.w as f64).round() as u32;
+
+        SingleColorImage{w: width, h: height, color: self.color}
+    }
+}
+
 #[test]
 fn image_map_test() {
     let mut image_map = ImageMap::new(1, 2);
@@ -349,15 +376,15 @@ fn down_sample_test() {
     assert_eq!(result.get(0, 0), RGB::new(184, 132, 103));
 }
 
-fn white_image(max_dimension: u32) -> BoxedStrategy<TestImage> {
+fn white_image(max_dimension: u32) -> BoxedStrategy<SingleColorImage> {
     (0..max_dimension, 0..max_dimension)
-        .prop_map(|(w, h)| TestImage::new_white(w, h))
+        .prop_map(|(w, h)| SingleColorImage{w, h, color: RGB::new(255,255,255)})
         .boxed()
 }
 
 
 proptest! {
-    #![proptest_config(Config::with_cases(100))]
+    #![proptest_config(Config::with_cases(10))]
     #[test]
     fn doesnt_crash(
         ref image in white_image(2000),
