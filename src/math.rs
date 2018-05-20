@@ -35,10 +35,10 @@ pub struct Crop {
 impl Crop {
     pub fn scale(&self, ratio: f64) -> Crop {
         Crop {
-            x: (self.x as f64 * ratio) as u32,
-            y: (self.y as f64 * ratio) as u32,
-            width: (self.width as f64 * ratio) as u32,
-            height: (self.height as f64 * ratio) as u32
+            x: (self.x as f64 * ratio).round() as u32,
+            y: (self.y as f64 * ratio).round() as u32,
+            width: (self.width as f64 * ratio).round() as u32,
+            height: (self.height as f64 * ratio).round() as u32
         }
     }
 }

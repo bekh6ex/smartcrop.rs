@@ -14,22 +14,20 @@ const SCALE_STEP: f64 = 0.1;
 
 const SCORE_DOWN_SAMPLE: f64 = 8.0;
 
-const SATURATION_BIAS: f64 = 0.2;
-const SKIN_BIAS: f64 = 0.01;
-
 const SKIN_WEIGHT: f64 = 1.8;
-const SATURATION_WEIGHT: f64 = 0.3;
 const DETAIL_WEIGHT: f64 = 0.2;
 
 const SKIN_BRIGHTNESS_MIN: f64 = 0.2;
 const SKIN_BRIGHTNESS_MAX: f64 = 1.0;
 const SKIN_THRESHOLD: f64 = 0.8;
+const SKIN_BIAS: f64 = 0.01;
 
 const SATURATION_BRIGHTNESS_MIN: f64 = 0.05;
 const SATURATION_BRIGHTNESS_MAX: f64 = 0.9;
 const SATURATION_THRESHOLD: f64 = 0.4;
+const SATURATION_BIAS: f64 = 0.2;
+const SATURATION_WEIGHT: f64 = 0.1;
 
-//TODO Check all `as uXX` casts. Should be rounded first
 
 pub trait Image: Sized {
     fn width(&self) -> u32;
@@ -67,7 +65,7 @@ impl CropSettings {
         CropSettings {}
     }
 }
-
+#[derive(Debug)]
 struct ImageMap {
     width: u32,
     height: u32,
@@ -77,10 +75,6 @@ struct ImageMap {
 
 impl ImageMap {
     fn new(width: u32, height: u32) -> ImageMap {
-
-        if width == 0 || height == 0 {
-            panic!("ImageMap cannot have zero width/height");
-        }
 
         let white = RGB::new(255, 255, 255);
         let pixels = vec![vec![white; height as usize]; width as usize];
@@ -100,13 +94,8 @@ impl ImageMap {
     }
 
     fn down_sample(self, factor: u32) -> Self {
-        //        let idata = self.data;
-        if self.width < factor || self.height < factor {
-            return self;
-        }
-
-        let width = (self.width as f64 / factor as f64) as u32;
-        let height = (self.height as f64 / factor as f64) as u32;
+        let width = (self.width as f64 / factor as f64).floor() as u32;
+        let height = (self.height as f64 / factor as f64).floor() as u32;
         let mut output = ImageMap::new(width, height);
         //        let data = output.data;
         let ifactor2: f64 = 1.0 / (factor as f64 * factor as f64);
@@ -127,7 +116,6 @@ impl ImageMap {
 
                 let mut mr: f64 = 0.0;
                 let mut mg: f64 = 0.0;
-                let mut mb: f64 = 0.0;
 
                 for v in 0..factor as u32 {
                     for u in 0..factor {
@@ -140,7 +128,6 @@ impl ImageMap {
                         b += icolor.b as f64;
                         mr = max(mr, icolor.r as f64);
                         mg = max(mg, icolor.g as f64);
-                        mb = max(mb, icolor.b as f64);
                     }
                 }
 
@@ -187,8 +174,8 @@ impl Analyzer {
             let f = PRESCALE_MIN / f64::min(img.width() as f64, img.height() as f64);
             let prescalefactor = if f < 1.0 { f } else { 1.0 };
 
-            let crop_width = chop(width * scale * prescalefactor) as u32;
-            let crop_height = chop(height * scale * prescalefactor) as u32;
+            let crop_width = chop(width * scale * prescalefactor).round() as u32;
+            let crop_height = chop(height * scale * prescalefactor).round() as u32;
             let real_min_scale = calculate_real_min_scale(scale);
 
             let resize_result = img.resize(((img.width() as f64) * prescalefactor).round() as u32);
@@ -200,8 +187,8 @@ impl Analyzer {
 
             Ok(top_crop.scale(1.0 / prescalefactor))
         } else {
-            let crop_width = chop(width * scale) as u32;
-            let crop_height = chop(height * scale) as u32;
+            let crop_width = chop(width * scale).round() as u32;
+            let crop_height = chop(height * scale).round() as u32;
             let real_min_scale = calculate_real_min_scale(scale);
 
             let top_crop = try!(analyse(&self.settings, img, crop_width, crop_height, real_min_scale));
@@ -332,10 +319,10 @@ fn crops(i: &ImageMap, crop_width: u32, crop_height: u32, real_min_scale: f64) -
         for y in stepping(y_step).take_while(|y| y + crop_h * scale <= height) {
             for x in stepping(x_step).take_while(|x| x + crop_w * scale <= width) {
                 crops.push(Crop {
-                    x: x as u32,
-                    y: y as u32,
-                    width: (crop_w * scale) as u32,
-                    height: (crop_h * scale) as u32,
+                    x: x.round() as u32,
+                    y: y.round() as u32,
+                    width: (crop_w * scale).round() as u32,
+                    height: (crop_h * scale).round() as u32,
 
                 });
             };
@@ -364,12 +351,12 @@ fn score(o: &ImageMap, crop: &Crop) -> Score {
                   .take_while(|&y| y < output_height_down_sample) {
         for x in (0..).map(|i: u32| i as f64 * SCORE_DOWN_SAMPLE)
                       .take_while(|&x| x < output_width_down_sample) {
-            let orig_x = (x * inv_down_sample) as u32;
-            let orig_y = (y * inv_down_sample) as u32;
+            let orig_x = (x * inv_down_sample).round() as u32;
+            let orig_y = (y * inv_down_sample).round() as u32;
 
             let color = o.get(orig_x, orig_y);
 
-            let imp = importance(crop, x as u32, y as u32);
+            let imp = importance(crop, x.round() as u32, y.round() as u32);
             let det = color.g as f64 / 255.0;
 
             skin += color.r as f64 / 255.0 * (det + SKIN_BIAS) * imp;
