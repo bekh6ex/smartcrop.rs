@@ -401,12 +401,39 @@ fn white_image(max_dimension: u32) -> BoxedStrategy<SingleColorImage> {
         .boxed()
 }
 
+fn random_image(max_width: u32, max_height: u32) -> BoxedStrategy<TestImage> {
+    (1..max_width, 1..max_height)
+        .prop_flat_map(|(w, h)| {
+            let size = (w * h * 3) as usize;
+            let colors = prop::collection::vec(0..256u16, size..(size+1));
+            (Just(w), Just(h),  colors)
+    })
+        .prop_map(|(w, h, c)| {
+            TestImage::new_from_fn(w,h,|x, y| {
+                let i = (x + y * w) as usize;
+                RGB::new(c[i] as u8, c[i+1]  as u8, c[i+2] as u8)
+            })
+        })
+        .boxed()
+}
+
 
 proptest! {
     #![proptest_config(Config::with_cases(10))]
     #[test]
     fn doesnt_crash(
         ref image in white_image(2000),
+        crop_w in 0u32..,
+        crop_h in 0u32..
+    ) {
+        let analyzer = Analyzer::new(CropSettings::default());
+
+        let _crop = analyzer.find_best_crop(image, crop_w, crop_h);
+    }
+
+    #[test]
+    fn doesnt_crash_with_random_image(
+        ref image in random_image(2000, 2000),
         crop_w in 0u32..,
         crop_h in 0u32..
     ) {
