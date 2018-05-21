@@ -43,16 +43,18 @@ impl Image for BenchImage {
         self.h
     }
 
-    fn resize(&self, width: u32) -> Box<Image> {
+    fn get(&self, x: u32, y: u32) -> RGB {
+        self.pixels[y as usize][x as usize]
+    }
+}
+
+impl ResizableImage<Self> for BenchImage {
+    fn resize(&self, width: u32) -> Self {
         if width == self.w {
-            return Box::new(self.clone());
+            return self.clone();
         }
 
         unimplemented!()
-    }
-
-    fn get(&self, x: u32, y: u32) -> RGB {
-        self.pixels[y as usize][x as usize]
     }
 }
 
@@ -61,7 +63,7 @@ fn bench_find_best_crop(b: &mut Bencher) {
     let image = BenchImage::new_from_fn(
         24,
         8,
-        |x, y| {
+        |x, _y| {
             if x < 9 {
                 GREEN
             } else if x < 16 {
