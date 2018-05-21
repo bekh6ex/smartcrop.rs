@@ -356,6 +356,24 @@ fn find_best_crop_on_tiny_image_should_not_panic() {
     let _ = analyzer.find_best_crop(&image, 1, 1);
 }
 
+
+#[test]
+fn crop_scale_test() {
+    let crop = Crop{
+        x:2,
+        y:4,
+        width:8,
+        height:16
+    };
+
+    let scaled_crop = crop.scale(0.5);
+
+    assert_eq!(1, scaled_crop.x);
+    assert_eq!(2, scaled_crop.y);
+    assert_eq!(4, scaled_crop.width);
+    assert_eq!(8, scaled_crop.height);
+}
+
 #[test]
 fn down_sample_test() {
     let image = TestImage::new(

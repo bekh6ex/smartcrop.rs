@@ -7,58 +7,6 @@ const EDGE_RADIUS: f64 = 0.4;
 const EDGE_WEIGHT: f64 = -20.0;
 const RULE_OF_THIRDS: bool = true;
 
-
-
-
-
-
-
-
-// Score contains values that classify matches
-#[derive(Clone, PartialEq, Debug)]
-pub struct Score {
-    pub detail: f64,
-    pub saturation: f64,
-    pub skin: f64,
-    pub total: f64
-}
-
-// Crop contains results
-#[derive(Clone, PartialEq, Debug)]
-pub struct Crop {
-    pub x: u32,
-    pub y: u32,
-    pub width: u32,
-    pub height: u32,
-}
-
-impl Crop {
-    pub fn scale(&self, ratio: f64) -> Crop {
-        Crop {
-            x: (self.x as f64 * ratio).round() as u32,
-            y: (self.y as f64 * ratio).round() as u32,
-            width: (self.width as f64 * ratio).round() as u32,
-            height: (self.height as f64 * ratio).round() as u32
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct ScoredCrop {
-    pub crop: Crop,
-    pub score: Score
-}
-
-impl ScoredCrop {
-    pub fn scale(&self, ratio: f64) -> ScoredCrop {
-        ScoredCrop {
-            crop: self.crop.scale(ratio),
-            score: self.score.clone()
-        }
-
-    }
-}
-
 pub fn chop(x: f64) -> f64 {
     if x < 0.0 {
         x.ceil()
@@ -196,20 +144,4 @@ mod tests {
         );
     }
 
-    #[test]
-    fn crop_scale_test() {
-        let crop = Crop{
-            x:2,
-            y:4,
-            width:8,
-            height:16
-        };
-
-        let scaled_crop = crop.scale(0.5);
-
-        assert_eq!(1, scaled_crop.x);
-        assert_eq!(2, scaled_crop.y);
-        assert_eq!(4, scaled_crop.width);
-        assert_eq!(8, scaled_crop.height);
-    }
 }

@@ -58,6 +58,52 @@ impl RGB {
     }
 }
 
+// Score contains values that classify matches
+#[derive(Clone, PartialEq, Debug)]
+pub struct Score {
+    pub detail: f64,
+    pub saturation: f64,
+    pub skin: f64,
+    pub total: f64
+}
+
+// Crop contains results
+#[derive(Clone, PartialEq, Debug)]
+pub struct Crop {
+    pub x: u32,
+    pub y: u32,
+    pub width: u32,
+    pub height: u32,
+}
+
+impl Crop {
+    fn scale(&self, ratio: f64) -> Crop {
+        Crop {
+            x: (self.x as f64 * ratio).round() as u32,
+            y: (self.y as f64 * ratio).round() as u32,
+            width: (self.width as f64 * ratio).round() as u32,
+            height: (self.height as f64 * ratio).round() as u32
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ScoredCrop {
+    pub crop: Crop,
+    pub score: Score
+}
+
+impl ScoredCrop {
+    pub fn scale(&self, ratio: f64) -> ScoredCrop {
+        ScoredCrop {
+            crop: self.crop.scale(ratio),
+            score: self.score.clone()
+        }
+
+    }
+}
+
+
 pub struct CropSettings {}
 
 impl CropSettings {
