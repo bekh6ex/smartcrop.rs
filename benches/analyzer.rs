@@ -49,7 +49,7 @@ impl Image for BenchImage {
 }
 
 impl ResizableImage<Self> for BenchImage {
-    fn resize(&self, width: u32) -> Self {
+    fn resize(&self, width: u32, height: u32) -> Self {
         if width == self.w {
             return self.clone();
         }

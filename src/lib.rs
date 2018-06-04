@@ -36,7 +36,7 @@ pub trait Image: Sized {
 }
 
 pub trait ResizableImage<I: Image> {
-    fn resize(&self, width: u32) -> I;
+    fn resize(&self, width: u32, height: u32) -> I;
 }
 
 #[derive(PartialEq, Debug)]
@@ -224,9 +224,10 @@ impl Analyzer {
             let crop_height = chop(height * scale * prescalefactor).round() as u32;
             let real_min_scale = calculate_real_min_scale(scale);
 
-            let resize_result = img.resize(((img.width() as f64) * prescalefactor).round() as u32);
+            let new_width = ((img.width() as f64) * prescalefactor).round() as u32;
+            let new_height = (new_width as f64 / img.width() as f64 * img.height() as f64).round() as u32;
 
-            let img = resize_result;
+            let img = img.resize(new_width, new_height);
 
             let top_crop = analyse(&self.settings, &img, crop_width, crop_height, real_min_scale)?
                 .unwrap();

@@ -33,9 +33,7 @@ impl<I, P> ResizableImage<ImageBuffer<P, std::vec::Vec<u8>>> for I
     where I: GenericImage<Pixel=P> + 'static,
           P: Pixel<Subpixel=u8> + 'static {
 
-    fn resize(&self, width: u32) -> ImageBuffer<P, std::vec::Vec<u8>> {
-        let height = (width as f64 / self.width() as f64 * self.height() as f64).round() as u32;
-
+    fn resize(&self, width: u32, height: u32) -> ImageBuffer<P, std::vec::Vec<u8>> {
         imageops::resize(self, width, height, FilterType::Lanczos3)
     }
 }

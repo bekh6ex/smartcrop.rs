@@ -80,7 +80,7 @@ impl Image for TestImage {
 }
 
 impl ResizableImage<TestImage> for TestImage {
-    fn resize(&self, width: u32) -> TestImage {
+    fn resize(&self, width: u32, _height: u32) -> TestImage {
         if width == self.w {
             return self.clone();
         }
@@ -109,7 +109,7 @@ impl Image for SingleColorImage {
 }
 
 impl ResizableImage<SingleColorImage> for SingleColorImage {
-    fn resize(&self, width: u32) -> SingleColorImage {
+    fn resize(&self, width: u32, _height: u32) -> SingleColorImage {
         if width == self.w {
             return self.clone();
         }
