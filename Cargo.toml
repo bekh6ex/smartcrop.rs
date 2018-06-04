@@ -10,6 +10,9 @@ include = [
     "Cargo.toml",
 ]
 
+[badges]
+travis-ci = { repository = "bekh6ex/rust-smartcrop", branch = "master" }
+
 [features]
 default =["image"]
 
