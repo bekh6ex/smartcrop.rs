@@ -1,0 +1,24 @@
+[package]
+name = "compare_with_js"
+version = "0.1.0"
+authors = ["Aleksey Bekh-Ivanov <6ex@mail.ru>"]
+
+[dependencies]
+futures = "^0.1"
+hyper = "^0.11"
+hyper-tls = "*"
+tokio-core = "^0.1"
+tokio-fs = "^0.1.0"
+rand="*"
+image="*"
+rust-crypto = "^0.2"
+tokio-threadpool = "*"
+serde = "1.0.55"
+serde_json = "*"
+serde_derive = "*"
+
+[dependencies.smartcrop]
+path = "../.."
+
+[dev-dependencies]
+proptest = "0.7.0"

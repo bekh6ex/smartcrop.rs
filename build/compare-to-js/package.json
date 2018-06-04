@@ -1,0 +1,17 @@
+{
+  "name": "build",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "smartcrop": "2.0.3",
+    "smartcrop-gm": "^2.0.2",
+    "underscore": "^1.9.0",
+    "yargs": "^11.0.0"
+  }
+}

@@ -11,9 +11,13 @@ include = [
 
 [features]
 default =["image"]
+compare-to-js=[]
 
 [dependencies]
 image = { version = "*", optional = true }
 
 [dev-dependencies]
 proptest = "^0.7.0"
+serde = "1.0.55"
+serde_json = "*"
+serde_derive = "*"

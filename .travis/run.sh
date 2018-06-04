@@ -14,3 +14,10 @@ fi
 # Check that cli compiles
 cd cli
 cargo build
+
+function compare_with_js () {
+    docker build --tag smartcrop-js build/compare-to-js
+
+    cargo test --features "compare-to-js" produces_the_same_result_as_js_version
+
+}
