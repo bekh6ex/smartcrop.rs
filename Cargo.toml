@@ -2,7 +2,7 @@
 name = "smartcrop"
 description="Clone of smartcrop library in JavaScript"
 license="GPL-3.0"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Aleksey Bekh-Ivanov <6ex@mail.ru>"]
 include = [
     "src/*.rs",
