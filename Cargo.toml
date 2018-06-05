@@ -13,6 +13,8 @@ include = [
 [badges]
 travis-ci = { repository = "bekh6ex/rust-smartcrop", branch = "master" }
 codecov = { repository = "bekh6ex/rust-smartcrop" }
+is-it-maintained-issue-resolution = { repository = "bekh6ex/rust-smartcrop" }
+is-it-maintained-open-issues = { repository = "bekh6ex/rust-smartcrop" }
 
 [features]
 default =["image"]
