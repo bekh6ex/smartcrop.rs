@@ -2,7 +2,7 @@
 name = "smartcrop"
 description="Clone of smartcrop library in JavaScript"
 repository="https://github.com/bekh6ex/rust-smartcrop"
-license="GPL-3.0"
+license="MIT"
 version = "0.1.0"
 authors = ["Aleksey Bekh-Ivanov <6ex@mail.ru>"]
 include = [
