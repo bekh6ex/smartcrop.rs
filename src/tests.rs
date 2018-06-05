@@ -281,7 +281,7 @@ fn analyze_test() {
         }
     );
 
-    let crop = analyse(&CropSettings::default(), &image, 8, 8, 1.0).unwrap().unwrap();
+    let crop = analyse(&CropSettings::default(), &image, 8, 8, 1.0).unwrap();
 
     assert_eq!(crop.crop.width, 8);
     assert_eq!(crop.crop.height, 8);
