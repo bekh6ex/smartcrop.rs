@@ -229,8 +229,7 @@ impl Analyzer {
 
             let img = img.resize(new_width, new_height);
 
-            let top_crop = analyse(&self.settings, &img, crop_width, crop_height, real_min_scale)
-                .unwrap();
+            let top_crop = analyse(&self.settings, &img, crop_width, crop_height, real_min_scale);
 
             Ok(top_crop.scale(1.0 / prescalefactor))
         } else {
@@ -239,8 +238,7 @@ impl Analyzer {
             let real_min_scale = calculate_real_min_scale(scale);
 
             let top_crop = analyse(&self.settings, img, crop_width, crop_height, real_min_scale);
-            //TODO check
-            Ok(top_crop.unwrap())
+            Ok(top_crop)
         }
     }
 }
@@ -249,7 +247,7 @@ fn calculate_real_min_scale(scale: f64) -> f64 {
     f64::min(MAX_SCALE, f64::max(1.0 / scale, MIN_SCALE))
 }
 
-fn analyse<I: Image>(_cs: &CropSettings, img: &I, crop_width: u32, crop_height: u32, real_min_scale: f64) -> Option<ScoredCrop> {
+fn analyse<I: Image>(_cs: &CropSettings, img: &I, crop_width: u32, crop_height: u32, real_min_scale: f64) -> ScoredCrop {
 
     assert!(img.width() >= crop_width);
     assert!(img.height() >= crop_height);
@@ -282,7 +280,7 @@ fn analyse<I: Image>(_cs: &CropSettings, img: &I, crop_width: u32, crop_height: 
                                             })
                                         });
 
-    top_crop
+    top_crop.unwrap()
 }
 
 fn edge_detect<I: Image>(i: &I, o: &mut ImageMap) {
