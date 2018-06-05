@@ -263,8 +263,8 @@ fn analyse<I: Image>(_cs: &CropSettings, img: &I, crop_width: u32, crop_height: 
 
     saturation_detect(img, &mut o);
 
-    //TODO check if crops can return empty vector
     let cs: Vec<Crop> = crops(&o, crop_width, crop_height, real_min_scale);
+    assert!(!cs.is_empty());
     let score_output = o.down_sample(SCORE_DOWN_SAMPLE as u32);
     let top_crop: Option<ScoredCrop> = cs.iter()
                                          .map(|crop| {
