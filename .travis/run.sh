@@ -5,12 +5,8 @@ set -ex
 
 echo ${TRAVIS_EVENT_TYPE};
 
-cargo build
+cargo build --features 'image clap'
 cargo test
 if [ "$TOOLCHAIN" == "nightly" ]; then
     cargo bench
 fi
-
-# Check that cli compiles
-cd cli
-cargo build
