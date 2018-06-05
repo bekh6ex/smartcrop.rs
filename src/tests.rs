@@ -450,13 +450,17 @@ proptest! {
     }
 
     #[test]
-    fn doesnt_crash_with_random_image(
+    fn crop_is_within_the_image_boundaries(
         ref image in random_image(2000, 2000),
         crop_w in 0u32..,
         crop_h in 0u32..
     ) {
         let analyzer = Analyzer::new(CropSettings::default());
 
-        let _crop = analyzer.find_best_crop(image, crop_w, crop_h);
+        let result = analyzer.find_best_crop(image, crop_w, crop_h);
+
+        let crop = result.unwrap().crop;
+        assert!(crop.x + crop.width <= image.width());
+        assert!(crop.y + crop.height <= image.height());
     }
 }
