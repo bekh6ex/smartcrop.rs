@@ -100,6 +100,12 @@ struct SingleColorImage {
     color: RGB,
 }
 
+impl SingleColorImage {
+    fn white(w: u32, h: u32) -> SingleColorImage {
+        SingleColorImage{w, h, color: RGB::new(255,255,255)}
+    }
+}
+
 impl Image for SingleColorImage {
     fn width(&self) -> u32 { self.w }
 
@@ -410,6 +416,18 @@ fn result_is_as_in_js() {
     assert_eq!(crop.score.saturation, -1.713699592238245);
     assert_eq!(crop.score.skin, -0.5821112502841688);
     assert_eq!(crop.score.total, -0.030743502919192832);
+}
+
+#[test]
+fn test_analyze_is_alwayse_called_with_one_crop_dimension_equal_to_image_dimention() {
+    // assert!(img.width() == crop_width || img.height() == crop_height) was failing with this data
+    let image = SingleColorImage::white(510, 211);
+    let crop_w = 0;
+    let crop_h = 47961520;
+
+    let analyzer = Analyzer::new(CropSettings::default());
+
+    let _crop = analyzer.find_best_crop(&image, crop_w, crop_h);
 }
 
 

@@ -218,10 +218,10 @@ impl Analyzer {
         // resize image for faster processing
         if PRESCALE {
             let f = PRESCALE_MIN / f64::min(img.width() as f64, img.height() as f64);
-            let prescalefactor = if f < 1.0 { f } else { 1.0 };
+            let prescalefactor = f.min(1.0);
 
-            let crop_width = chop(width * scale * prescalefactor).round() as u32;
-            let crop_height = chop(height * scale * prescalefactor).round() as u32;
+            let crop_width = (width * scale * prescalefactor).round() as u32;
+            let crop_height = (height * scale * prescalefactor).round() as u32;
             let real_min_scale = calculate_real_min_scale(scale);
 
             let new_width = ((img.width() as f64) * prescalefactor).round() as u32;
@@ -229,14 +229,16 @@ impl Analyzer {
 
             let img = img.resize(new_width, new_height);
 
+            assert!(img.width() == crop_width || img.height() == crop_height);
             let top_crop = analyse(&self.settings, &img, crop_width, crop_height, real_min_scale);
 
             Ok(top_crop.scale(1.0 / prescalefactor))
         } else {
-            let crop_width = chop(width * scale).round() as u32;
-            let crop_height = chop(height * scale).round() as u32;
+            let crop_width = (width * scale).round() as u32;
+            let crop_height = (height * scale).round() as u32;
             let real_min_scale = calculate_real_min_scale(scale);
 
+            assert!(img.width() == crop_width || img.height() == crop_height);
             let top_crop = analyse(&self.settings, img, crop_width, crop_height, real_min_scale);
             Ok(top_crop)
         }
