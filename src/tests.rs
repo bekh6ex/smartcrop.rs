@@ -455,7 +455,6 @@ fn random_image(max_width: u32, max_height: u32) -> BoxedStrategy<TestImage> {
 
 
 proptest! {
-    #![proptest_config(Config::with_cases(10))]
     #[test]
     fn doesnt_crash(
         ref image in white_image(2000),
