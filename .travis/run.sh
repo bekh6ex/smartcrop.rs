@@ -6,7 +6,7 @@ set -ex
 echo ${TRAVIS_EVENT_TYPE};
 
 cargo build --features 'image clap'
-PROPTEST_CASES=5 cargo test
+PROPTEST_CASES=1 cargo test
 if [ "$TOOLCHAIN" == "nightly" ]; then
     cargo bench
 fi
