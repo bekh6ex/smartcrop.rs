@@ -26,8 +26,8 @@ addons:
 
 script:
   - cargo update
-  - ./.travis/run.sh "$TRAVIS_RUST_VERSION"
+  - travis_wait ./.travis/run.sh "$TRAVIS_RUST_VERSION"
 
 
 after_success:
-  - ./.travis/collect_coverage.sh
+  - travis_wait ./.travis/collect_coverage.sh
