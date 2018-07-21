@@ -1,4 +1,6 @@
 
+#![forbid(unsafe_code)]
+
 mod math;
 
 use self::math::*;
