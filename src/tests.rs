@@ -1,6 +1,5 @@
 use super::*;
 use proptest::prelude::*;
-use proptest::test_runner::Config;
 
 // All the "unobvious" numbers in tests were acquired by running same code in smartcrop.js
 // Used smartcrop.js commit: 623d271ad8faf24d78f9364fcc86b5132a368576

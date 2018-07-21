@@ -1,5 +1,6 @@
 
 #![forbid(unsafe_code)]
+#![cfg_attr(test, deny(warnings))]
 
 mod math;
 
