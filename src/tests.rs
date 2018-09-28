@@ -1,5 +1,11 @@
-use super::*;
 use proptest::prelude::*;
+use proptest::strategy::ValueTree;
+use proptest::test_runner::{Reason, TestRunner};
+use rand;
+use rand::distributions::IndependentSample;
+use self::Side::*;
+use self::Simplification::*;
+use super::*;
 
 // All the "unobvious" numbers in tests were acquired by running same code in smartcrop.js
 // Used smartcrop.js commit: 623d271ad8faf24d78f9364fcc86b5132a368576
@@ -15,7 +21,7 @@ const SKIN: RGB = RGB { r: 255, g: 200, b: 159 };
 struct TestImage {
     w: u32,
     h: u32,
-    pixels: Vec<Vec<RGB>>
+    pixels: Vec<Vec<RGB>>,
 }
 
 impl TestImage {
@@ -24,7 +30,7 @@ impl TestImage {
     }
 
     fn new_single_pixel(pixel: RGB) -> TestImage {
-        TestImage { w:1, h:1, pixels: vec![vec![pixel]] }
+        TestImage { w: 1, h: 1, pixels: vec![vec![pixel]] }
     }
 
     fn new_from_fn<G>(w: u32, h: u32, generate: G) -> TestImage
@@ -45,6 +51,20 @@ impl TestImage {
 
         TestImage { w, h, pixels }
     }
+
+    fn crop(&self, x: u32, y: u32, w: u32, h: u32) -> TestImage {
+        let mut pixels = Vec::with_capacity(w as usize);
+        for x1 in 0..w {
+            let mut column = Vec::with_capacity(h as usize);
+            for y1 in 0..h {
+                let pixel = self.get(x + x1, y + y1);
+                column.push(pixel)
+            }
+            pixels.push(column);
+        }
+
+        TestImage { w, h, pixels }
+    }
 }
 
 impl ImageMap {
@@ -60,11 +80,9 @@ impl ImageMap {
 
         image_map
     }
-
 }
 
 impl Image for TestImage {
-
     fn width(&self) -> u32 {
         self.w
     }
@@ -87,9 +105,8 @@ impl ResizableImage<TestImage> for TestImage {
         let height = (self.h as f64 * width as f64 / self.w as f64).round() as u32;
 
         //TODO Implement more or less correct resizing
-        return TestImage{w: width, h: height, pixels: self.pixels.clone()};
+        return TestImage { w: width, h: height, pixels: self.pixels.clone() };
     }
-
 }
 
 #[derive(Clone, Debug)]
@@ -101,7 +118,7 @@ struct SingleColorImage {
 
 impl SingleColorImage {
     fn white(w: u32, h: u32) -> SingleColorImage {
-        SingleColorImage{w, h, color: RGB::new(255,255,255)}
+        SingleColorImage { w, h, color: RGB::new(255, 255, 255) }
     }
 }
 
@@ -121,7 +138,7 @@ impl ResizableImage<SingleColorImage> for SingleColorImage {
 
         let height = (self.h as f64 * width as f64 / self.w as f64).round() as u32;
 
-        SingleColorImage{w: width, h: height, color: self.color}
+        SingleColorImage { w: width, h: height, color: self.color }
     }
 }
 
@@ -174,7 +191,7 @@ fn score_test_image_with_single_white_pixel_then_score_is_the_same_as_for_js_ver
         detail: -6.404213562373096,
         saturation: -7.685056274847715,
         skin: -6.468255697996827,
-        total: -13.692208596353678
+        total: -13.692208596353678,
     };
 
     assert_eq!(s, js_version_score);
@@ -228,7 +245,7 @@ fn edge_detect_3x3() {
             vec![RED, GREEN, BLUE],
             vec![GREEN, BLUE, RED],
             vec![BLUE, RED, GREEN],
-        ]
+        ],
     );
     let mut o = ImageMap::new(3, 3);
 
@@ -255,7 +272,7 @@ fn saturation_detect_3x3() {
             vec![RED, GREEN, BLUE],
             vec![WHITE, SKIN, BLACK],
             vec![BLUE, RED, GREEN],
-        ]
+        ],
     );
     let mut o = ImageMap::from_image(&image);
 
@@ -283,7 +300,7 @@ fn analyze_test() {
             } else {
                 WHITE
             }
-        }
+        },
     );
 
     let crop = analyse(&CropSettings::default(), &image, 8, 8, 1.0);
@@ -311,7 +328,7 @@ fn find_best_crop_test() {
             } else {
                 WHITE
             }
-        }
+        },
     );
     let analyzer = Analyzer::new(CropSettings::default());
 
@@ -332,7 +349,7 @@ fn find_best_crop_wrong_rounding_test() {
     let image = TestImage::new_from_fn(
         640,
         426,
-        |_, _| { WHITE }
+        |_, _| { WHITE },
     );
     let analyzer = Analyzer::new(CropSettings::default());
 
@@ -344,7 +361,7 @@ fn find_best_crop_wrong_rounding_test() {
 
 #[test]
 fn find_best_crop_zerosized_image_gives_error() {
-    let image = TestImage::new_white(0,0);
+    let image = TestImage::new_white(0, 0);
     let analyzer = Analyzer::new(CropSettings::default());
 
     let result = analyzer.find_best_crop(&image, 1, 1);
@@ -355,7 +372,7 @@ fn find_best_crop_zerosized_image_gives_error() {
 #[test]
 // If image dimension is less than SCORE_DOWN_SAMPLE
 fn find_best_crop_on_tiny_image_should_not_panic() {
-    let image = TestImage::new_white(1,1);
+    let image = TestImage::new_white(1, 1);
     let analyzer = Analyzer::new(CropSettings::default());
 
     let _ = analyzer.find_best_crop(&image, 1, 1);
@@ -364,11 +381,11 @@ fn find_best_crop_on_tiny_image_should_not_panic() {
 
 #[test]
 fn crop_scale_test() {
-    let crop = Crop{
-        x:2,
-        y:4,
-        width:8,
-        height:16
+    let crop = Crop {
+        x: 2,
+        y: 4,
+        width: 8,
+        height: 16,
     };
 
     let scaled_crop = crop.scale(0.5);
@@ -388,7 +405,7 @@ fn down_sample_test() {
             vec![RED, GREEN, BLUE],
             vec![SKIN, BLUE, RED],
             vec![BLUE, RED, GREEN],
-        ]
+        ],
     );
 
     let image_map = ImageMap::from_image(&image);
@@ -432,24 +449,28 @@ fn test_analyze_is_alwayse_called_with_one_crop_dimension_equal_to_image_dimenti
 
 fn white_image(max_dimension: u32) -> BoxedStrategy<SingleColorImage> {
     (0..max_dimension, 0..max_dimension)
-        .prop_map(|(w, h)| SingleColorImage{w, h, color: RGB::new(255,255,255)})
+        .prop_map(|(w, h)| SingleColorImage { w, h, color: RGB::new(255, 255, 255) })
         .boxed()
 }
 
-fn random_image(max_width: u32, max_height: u32) -> BoxedStrategy<TestImage> {
+fn _random_image(max_width: u32, max_height: u32) -> BoxedStrategy<TestImage> {
     (1..max_width, 1..max_height)
         .prop_flat_map(|(w, h)| {
             let size = (w * h * 3) as usize;
-            let colors = prop::collection::vec(0..256u16, size..(size+1));
-            (Just(w), Just(h),  colors)
-    })
+            let colors = prop::collection::vec(0..256u16, size..(size + 1));
+            (Just(w), Just(h), colors)
+        })
         .prop_map(|(w, h, c)| {
-            TestImage::new_from_fn(w,h,|x, y| {
+            TestImage::new_from_fn(w, h, |x, y| {
                 let i = (x + y * w) as usize;
-                RGB::new(c[i] as u8, c[i+1]  as u8, c[i+2] as u8)
+                RGB::new(c[i] as u8, c[i + 1] as u8, c[i + 2] as u8)
             })
         })
         .boxed()
+}
+
+fn random_image(max_width: u32, max_height: u32) -> TestImageStrategy {
+    TestImageStrategy::new(max_width, max_height)
 }
 
 
@@ -467,9 +488,9 @@ proptest! {
 
     #[test]
     fn crop_is_within_the_image_boundaries(
-        ref image in random_image(2000, 2000),
-        crop_w in 0u32..,
-        crop_h in 0u32..
+        ref image in random_image(600, 600),
+        crop_w in 1u32..,
+        crop_h in 1u32..
     ) {
         let analyzer = Analyzer::new(CropSettings::default());
 
@@ -478,5 +499,193 @@ proptest! {
         let crop = result.unwrap().crop;
         assert!(crop.x + crop.width <= image.width());
         assert!(crop.y + crop.height <= image.height());
+    }
+}
+
+
+#[test]
+fn crop_is_within_the_image_boundaries123() {
+    let crop_w = 524505884;
+    let crop_h = 1;
+    let image = TestImage::new_from_fn(2000, 2000, |x, y| {
+        RGB::new((x % 255) as u8, (y % 256) as u8, ((x + y) % 254) as u8)
+    });
+    let analyzer = Analyzer::new(CropSettings::default());
+
+    let result = analyzer.find_best_crop(&image, crop_w, crop_h);
+
+    let crop = result.unwrap().crop;
+    assert!(crop.x + crop.width <= image.width());
+    assert!(crop.y + crop.height <= image.height());
+}
+
+#[derive(Debug)]
+struct TestImageStrategy {
+    max_w: u32,
+    max_h: u32,
+}
+
+impl TestImageStrategy {
+    fn new(max_w: u32, max_h: u32) -> TestImageStrategy {
+        TestImageStrategy { max_w, max_h }
+    }
+}
+
+impl Strategy for TestImageStrategy {
+    type Value = TestImageValueTree;
+
+    fn new_value(&self, runner: &mut TestRunner) -> Result<<Self as Strategy>::Value, Reason> {
+        let w = rand::distributions::Range::new(1, self.max_w + 1)
+            .ind_sample(runner.rng());
+        let h = rand::distributions::Range::new(1, self.max_h + 1)
+            .ind_sample(runner.rng());
+
+        let mut pixels = Vec::with_capacity(w as usize);
+        for _ in 0..w {
+            let mut column = Vec::with_capacity(h as usize);
+            for _ in 0..h {
+                let r = runner.rng().gen();
+                let g = runner.rng().gen();
+                let b = runner.rng().gen();
+                column.push(RGB { r, g, b })
+            }
+            pixels.push(column);
+        }
+        let image = TestImage { w, h, pixels };
+
+        Ok(TestImageValueTree::new(image))
+    }
+}
+
+enum Side {
+    Top,
+    Right,
+    Bottom,
+    Left,
+}
+
+enum Simplification {
+    Cut(Side),
+    Darken { x: u32, y: u32 },
+}
+
+struct TestImageValueTree {
+    images: Vec<TestImage>,
+    simplification: Option<Simplification>,
+}
+
+impl TestImageValueTree {
+    fn new(image: TestImage) -> TestImageValueTree {
+        TestImageValueTree {
+            images: vec![image],
+            simplification: Some(Cut(Top)),
+        }
+    }
+
+    fn switch_to_next_simplification(&mut self) {
+        match self.simplification {
+            Some(Cut(Top)) => self.simplification = Some(Cut(Right)),
+            Some(Cut(Right)) => self.simplification = Some(Cut(Bottom)),
+            Some(Cut(Bottom)) => self.simplification = Some(Cut(Left)),
+            Some(Cut(Left)) => self.simplification = Some(Darken { x: 0, y: 0 }),
+            Some(Darken { x: x, y: y }) => {
+                let image = self.images.last().unwrap();
+                self.simplification = if y == image.height() - 1 {
+                    None
+                } else if x == image.width() - 1 {
+                    Some(Darken { x: 0, y: y + 1 })
+                } else {
+                    Some(Darken { x: x + 1, y })
+                }
+            }
+            _ => self.simplification = None,
+        }
+    }
+
+    fn can_simplify(&self) -> bool {
+        match self.simplification {
+            Some(Cut(_)) => {
+                let image = self.images.last().unwrap();
+                image.width() > 1 && image.height() > 1
+            }
+            Some(Darken { x: x, y: y }) => {
+                let image = self.images.last().unwrap();
+                image.width() > x + 1 || image.height() > y + 1
+            }
+            _ => false,
+        }
+    }
+}
+
+impl ValueTree for TestImageValueTree {
+    type Value = TestImage;
+
+    fn current(&self) -> <Self as ValueTree>::Value {
+        self.images.last().unwrap().clone()
+    }
+
+    fn simplify(&mut self) -> bool {
+        if !self.can_simplify() {
+            eprintln!("Cannot simplify");
+            return false;
+        }
+
+        let simplified_image = {
+            
+
+            match self.simplification {
+                Some(Cut(Top)) => {
+                    eprintln!("Simplify Cut(Top)");
+                    let image = self.images.last().unwrap();
+                    image.crop(0, 1, image.w, image.h - 1)
+                }
+                Some(Cut(Right)) => {
+                    eprintln!("Simplify Cut(Right)");
+                    let image = self.images.last().unwrap();
+                    image.crop(0, 0, image.w - 1, image.h)
+                }
+                Some(Cut(Bottom)) => {
+                    eprintln!("Simplify Cut(Bottom)");
+                    let image = self.images.last().unwrap();
+                    image.crop(0, 0, image.w, image.h - 1)
+                }
+                Some(Cut(Left)) => {
+                    eprintln!("Simplify Cut(Left)");
+                    let image = self.images.last().unwrap();
+                    image.crop(1, 0, image.w - 1, image.h)
+                }
+                Some(Darken { x, y }) => {
+                    eprintln!("Simplify Darken {{ {}, {} }}", x, y);
+                    self.switch_to_next_simplification();
+                    let image = self.images.last().unwrap();
+                    let mut new_image = image.clone();
+                    new_image.pixels[x as usize][y as usize] = RGB { r: 0, g: 0, b: 0 };
+                    new_image
+                }
+                _ => unimplemented!()
+            }
+        };
+
+        self.images.push(simplified_image);
+        
+        while self.images.len() > 10 {
+            self.images.remove(0);
+        }
+        
+        eprintln!("Simplified");
+        true
+    }
+
+    fn complicate(&mut self) -> bool {
+        if self.images.len() == 1 {
+            eprintln!("Cannot complicate");
+            false
+        } else {
+            eprintln!("Complicated");
+
+            self.images.pop();
+            self.switch_to_next_simplification();
+            true
+        }
     }
 }
