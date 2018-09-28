@@ -1,6 +1,5 @@
 
 #![forbid(unsafe_code)]
-#![cfg_attr(test, deny(warnings))]
 
 mod math;
 
@@ -481,6 +480,9 @@ mod image;
 #[cfg(test)]
 #[macro_use]
 extern crate proptest;
+
+#[cfg(test)]
+extern crate rand;
 
 #[cfg(test)]
 mod tests;
