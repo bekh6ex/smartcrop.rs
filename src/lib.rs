@@ -227,14 +227,21 @@ impl Analyzer {
             let real_min_scale = calculate_real_min_scale(scale);
 
             let new_width = ((img.width() as f64) * prescalefactor).round() as u32;
-            let new_height = (new_width as f64 / img.width() as f64 * img.height() as f64).round() as u32;
+            let new_height = (prescalefactor * img.height() as f64).round() as u32;
+
+            let old_width = img.width() as f64;
+            let old_height = img.height() as f64;
 
             let img = img.resize(new_width, new_height);
 
             assert!(img.width() == crop_width || img.height() == crop_height);
             let top_crop = analyse(&self.settings, &img, crop_width, crop_height, real_min_scale);
 
-            Ok(top_crop.scale(1.0 / prescalefactor))
+            let post_scale_w = img.width() as f64 / old_width;
+            let post_scale_h = img.height() as f64 / old_height;
+            let post_scale_factor = f64::max(post_scale_w, post_scale_h);
+
+            Ok(top_crop.scale(1.0 / post_scale_factor))
         } else {
             let crop_width = (width * scale).round() as u32;
             let crop_height = (height * scale).round() as u32;
