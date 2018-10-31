@@ -504,11 +504,15 @@ proptest! {
 
 
 #[test]
-fn crop_is_within_the_image_boundaries123() {
-    let crop_w = 524505884;
-    let crop_h = 1;
-    let image = TestImage::new_from_fn(2000, 2000, |x, y| {
-        RGB::new((x % 255) as u8, (y % 256) as u8, ((x + y) % 254) as u8)
+fn crop_is_within_the_image_boundaries_prop_test_found_case() {
+    let crop_w = 1;
+    let crop_h = 2;
+    let image = TestImage::new_from_fn(536, 581, |x, y| {
+        if x == 535 && y > 550 {
+            RGB::new(255,255,255)
+        } else {
+            RGB::new(0,0,0)
+        }
     });
     let analyzer = Analyzer::new(CropSettings::default());
 
@@ -588,7 +592,7 @@ impl TestImageValueTree {
             Some(Cut(Right)) => self.simplification = Some(Cut(Bottom)),
             Some(Cut(Bottom)) => self.simplification = Some(Cut(Left)),
             Some(Cut(Left)) => self.simplification = Some(Darken { x: 0, y: 0 }),
-            Some(Darken { x: x, y: y }) => {
+            Some(Darken { x, y }) => {
                 let image = self.images.last().unwrap();
                 self.simplification = if y == image.height() - 1 {
                     None
@@ -608,7 +612,7 @@ impl TestImageValueTree {
                 let image = self.images.last().unwrap();
                 image.width() > 1 && image.height() > 1
             }
-            Some(Darken { x: x, y: y }) => {
+            Some(Darken { x, y }) => {
                 let image = self.images.last().unwrap();
                 image.width() > x + 1 || image.height() > y + 1
             }
