@@ -536,9 +536,10 @@ impl TestImageStrategy {
 }
 
 impl Strategy for TestImageStrategy {
-    type Value = TestImageValueTree;
+    type Tree = TestImageValueTree;
+    type Value = TestImage;
 
-    fn new_value(&self, runner: &mut TestRunner) -> Result<<Self as Strategy>::Value, Reason> {
+    fn new_tree(&self, runner: &mut TestRunner) -> Result<<Self as Strategy>::Tree, Reason> {
         let w = rand::distributions::Range::new(1, self.max_w + 1)
             .ind_sample(runner.rng());
         let h = rand::distributions::Range::new(1, self.max_h + 1)
@@ -635,7 +636,7 @@ impl ValueTree for TestImageValueTree {
         }
 
         let simplified_image = {
-            
+
 
             match self.simplification {
                 Some(Cut(Top)) => {
@@ -671,11 +672,11 @@ impl ValueTree for TestImageValueTree {
         };
 
         self.images.push(simplified_image);
-        
+
         while self.images.len() > 10 {
             self.images.remove(0);
         }
-        
+
         eprintln!("Simplified");
         true
     }
