@@ -5,6 +5,7 @@ use smartcrop::{CropSettings, Analyzer};
 extern crate clap;
 
 use clap::{Arg, App};
+use std::num::NonZeroU32;
 
 extern crate image;
 
@@ -23,7 +24,7 @@ fn main() {
     // ```open``` returns a `DynamicImage` on success.
     let mut img = image::open(file_in).unwrap();
 
-    let crop = an.find_best_crop(&img, 10, 10).unwrap().crop;
+    let crop = an.find_best_crop(&img, NonZeroU32::new(10).unwrap(), NonZeroU32::new(10).unwrap()).unwrap().crop;
 
     let cropped = img.crop(crop.x, crop.y, crop.width, crop.height);
 

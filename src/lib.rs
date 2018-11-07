@@ -4,6 +4,7 @@
 mod math;
 
 use self::math::*;
+use std::num::NonZeroU32;
 
 
 const PRESCALE: bool = true;
@@ -44,7 +45,6 @@ pub trait ResizableImage<I: Image> {
 #[derive(PartialEq, Debug)]
 pub enum Error {
     ZeroSizedImage,
-    WidthOrHeightAreNotGiven,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -204,16 +204,13 @@ impl Analyzer {
         Analyzer { settings }
     }
 
-    pub fn find_best_crop<I: Image+ResizableImage<RI>, RI: Image>(&self, img: &I, width: u32, height: u32) -> Result<ScoredCrop, Error> {
-        if width == 0 && height == 0 {
-            return Err(Error::WidthOrHeightAreNotGiven);
-        }
+    pub fn find_best_crop<I: Image+ResizableImage<RI>, RI: Image>(&self, img: &I, width: NonZeroU32, height: NonZeroU32) -> Result<ScoredCrop, Error> {
         if img.width() == 0 || img.height() == 0 {
             return Err(Error::ZeroSizedImage);
         }
 
-        let width = width as f64;
-        let height = height as f64;
+        let width = width.get() as f64;
+        let height = height.get() as f64;
 
         let scale = f64::min((img.width() as f64) / width, (img.height() as f64) / height);
 
@@ -222,8 +219,8 @@ impl Analyzer {
             let f = PRESCALE_MIN / f64::min(img.width() as f64, img.height() as f64);
             let prescalefactor = f.min(1.0);
 
-            let crop_width = (width * scale * prescalefactor).round() as u32;
-            let crop_height = (height * scale * prescalefactor).round() as u32;
+            let crop_width = (width * scale * prescalefactor).max(1.0).round() as u32;
+            let crop_height = (height * scale * prescalefactor).max(1.0).round() as u32;
             let real_min_scale = calculate_real_min_scale(scale);
 
             let new_width = ((img.width() as f64) * prescalefactor).round() as u32;
@@ -235,7 +232,13 @@ impl Analyzer {
             let img = img.resize(new_width, new_height);
 
             assert!(img.width() == crop_width || img.height() == crop_height);
-            let top_crop = analyse(&self.settings, &img, crop_width, crop_height, real_min_scale);
+            let top_crop = analyse(
+                &self.settings,
+                &img,
+                NonZeroU32::new(crop_width).unwrap(),
+                NonZeroU32::new(crop_height).unwrap(),
+                real_min_scale
+            );
 
             let post_scale_w = img.width() as f64 / old_width;
             let post_scale_h = img.height() as f64 / old_height;
@@ -248,7 +251,7 @@ impl Analyzer {
             let real_min_scale = calculate_real_min_scale(scale);
 
             assert!(img.width() == crop_width || img.height() == crop_height);
-            let top_crop = analyse(&self.settings, img, crop_width, crop_height, real_min_scale);
+            let top_crop = analyse(&self.settings, img, NonZeroU32::new(crop_width).unwrap(), NonZeroU32::new(crop_height).unwrap(), real_min_scale);
             Ok(top_crop)
         }
     }
@@ -258,11 +261,10 @@ fn calculate_real_min_scale(scale: f64) -> f64 {
     f64::min(MAX_SCALE, f64::max(1.0 / scale, MIN_SCALE))
 }
 
-fn analyse<I: Image>(_cs: &CropSettings, img: &I, crop_width: u32, crop_height: u32, real_min_scale: f64) -> ScoredCrop {
+fn analyse<I: Image>(_cs: &CropSettings, img: &I, crop_width: NonZeroU32, crop_height: NonZeroU32, real_min_scale: f64) -> ScoredCrop {
 
-    assert!(img.width() >= crop_width);
-    assert!(img.height() >= crop_height);
-    assert!(crop_width > 0 || crop_height > 0);
+    assert!(img.width() >= crop_width.get());
+    assert!(img.height() >= crop_height.get());
 
     let mut o = ImageMap::new(img.width(), img.height());
 
@@ -272,7 +274,7 @@ fn analyse<I: Image>(_cs: &CropSettings, img: &I, crop_width: u32, crop_height: 
 
     saturation_detect(img, &mut o);
 
-    let cs: Vec<Crop> = crops(&o, crop_width, crop_height, real_min_scale);
+    let cs: Vec<Crop> = crops(&o, crop_width.get(), crop_height.get(), real_min_scale);
     assert!(!cs.is_empty());
     let score_output = o.down_sample(SCORE_DOWN_SAMPLE as u32);
     let top_crop: Option<ScoredCrop> = cs.iter()
