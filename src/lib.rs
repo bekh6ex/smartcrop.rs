@@ -487,11 +487,4 @@ fn saturation_detect<I: Image>(i: &I, o: &mut ImageMap) {
 mod image;
 
 #[cfg(test)]
-#[macro_use]
-extern crate proptest;
-
-#[cfg(test)]
-extern crate rand;
-
-#[cfg(test)]
 mod tests;
