@@ -1,8 +1,7 @@
 use proptest::prelude::*;
 use proptest::strategy::ValueTree;
 use proptest::test_runner::{Reason, TestRunner};
-use rand;
-use rand::distributions::IndependentSample;
+use rand::distributions::Distribution;
 use self::Side::*;
 use self::Simplification::*;
 use super::*;
@@ -542,10 +541,8 @@ impl Strategy for TestImageStrategy {
     type Value = TestImage;
 
     fn new_tree(&self, runner: &mut TestRunner) -> Result<<Self as Strategy>::Tree, Reason> {
-        let w = rand::distributions::Range::new(1, self.max_w + 1)
-            .ind_sample(runner.rng());
-        let h = rand::distributions::Range::new(1, self.max_h + 1)
-            .ind_sample(runner.rng());
+        let w = rand::distributions::Uniform::new(1, self.max_w + 1).sample(runner.rng());
+        let h = rand::distributions::Uniform::new(1, self.max_h + 1).sample(runner.rng());
 
         let mut pixels = Vec::with_capacity(w as usize);
         for _ in 0..w {
@@ -554,10 +551,10 @@ impl Strategy for TestImageStrategy {
                 let r = runner.rng().gen();
                 let g = runner.rng().gen();
                 let b = runner.rng().gen();
-                column.push(RGB { r, g, b })
-            }
+                column.push(RGB { r, g, b });
+            };
             pixels.push(column);
-        }
+        };
         let image = TestImage { w, h, pixels };
 
         Ok(TestImageValueTree::new(image))
