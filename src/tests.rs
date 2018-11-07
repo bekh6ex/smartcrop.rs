@@ -453,17 +453,6 @@ fn random_image(max_width: u32, max_height: u32) -> TestImageStrategy {
 
 proptest! {
     #[test]
-    fn doesnt_crash(
-        ref image in white_image(2000),
-        crop_w in 1u32..,
-        crop_h in 1u32..
-    ) {
-        let analyzer = Analyzer::new(CropSettings::default());
-
-        let _crop = analyzer.find_best_crop(image, NonZeroU32::new(crop_w).unwrap(), NonZeroU32::new(crop_h).unwrap());
-    }
-
-    #[test]
     fn crop_is_within_the_image_boundaries(
         ref image in random_image(600, 600),
         crop_w in 1u32..,
