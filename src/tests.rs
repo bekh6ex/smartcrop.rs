@@ -607,15 +607,29 @@ impl TestImageValueTree {
         }
     }
 
-    fn can_simplify(&self) -> bool {
+    fn can_simplify(&mut self) -> bool {
         match self.simplification {
-            Some(Cut(_)) => {
-                let image = self.images.last().unwrap();
-                image.width() > 1 && image.height() > 1
+            Some(Cut(Top)) | Some(Cut(Bottom)) => {
+                let image_height = self.images.last().unwrap().height();
+                if image_height > 1 {
+                    true
+                } else {
+                    self.switch_to_next_simplification();
+                    self.can_simplify()
+                }
+            }
+            Some(Cut(Left)) | Some(Cut(Right)) => {
+                let image_width = self.images.last().unwrap().width();
+                if image_width > 1 {
+                    true
+                } else {
+                    self.switch_to_next_simplification();
+                    self.can_simplify()
+                }
             }
             Some(Darken { x, y }) => {
                 let image = self.images.last().unwrap();
-                image.width() > x + 1 || image.height() > y + 1
+                image.width() > x || image.height() > y
             }
             _ => false,
         }
