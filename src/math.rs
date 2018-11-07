@@ -17,15 +17,14 @@ pub fn bounds(l: f64) -> u8 {
     f64::min(f64::max(l, 0.0), 255.0).round() as u8
 }
 
-pub fn cie(c: RGB) -> f64 {
-    0.5126 * c.b as f64 + 0.7152 * c.g as f64 + 0.0722 * c.r as f64
-}
-
 pub fn skin_col(c: RGB) -> f64 {
-    let mag = (c.r as f64 * c.r as f64 + c.g as f64 * c.g as f64 + c.b as f64 * c.b as f64).sqrt();
-    let rd = c.r as f64 / mag - SKIN_COLOR[0];
-    let gd = c.g as f64 / mag - SKIN_COLOR[1];
-    let bd = c.b as f64 / mag - SKIN_COLOR[2];
+    let r = c.r as f64;
+    let g = c.g as f64;
+    let b = c.b as f64;
+    let mag = (r.powi(2) + g.powi(2)+ b.powi(2)).sqrt();
+    let rd = r / mag - SKIN_COLOR[0];
+    let gd = g / mag - SKIN_COLOR[1];
+    let bd = b / mag - SKIN_COLOR[2];
 
     let d = (rd * rd + gd * gd + bd * bd).sqrt();
 
@@ -80,8 +79,8 @@ mod tests {
 
     #[test]
     fn cie_test() {
-        assert_eq!(0.0, cie(gray(0)));
-        assert_eq!(331.49999999999994, cie(gray(255)));
+        assert_eq!(0.0, gray(0).cie());
+        assert_eq!(331.49999999999994, gray(255).cie());
     }
 
     #[test]

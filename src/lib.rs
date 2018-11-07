@@ -59,6 +59,11 @@ impl RGB {
         RGB{r,g,b}
     }
 
+    pub fn cie(self: &RGB) -> f64 {
+        //TODO: Change it as soon as https://github.com/jwagner/smartcrop.js/issues/77 is closed
+        0.5126 * self.b as f64 + 0.7152 * self.g as f64 + 0.0722 * self.r as f64
+    }
+
     pub fn saturation(self: &RGB) -> f64 {
         let maximum = f64::max(f64::max(self.r as f64 / 255.0, self.g as f64 / 255.0), self.b as f64 / 255.0);
         let minimum = f64::min(f64::min(self.r as f64 / 255.0, self.g as f64 / 255.0), self.b as f64 / 255.0);
@@ -364,7 +369,7 @@ fn make_cies<I: Image>(img: &I) -> Vec<f64> {
     for y in 0..h {
         for x in 0..w {
             let color = img.get(x, y);
-            cies.insert(i, cie(color));
+            cies.insert(i, color.cie());
             i += 1;
         };
     };
@@ -459,7 +464,7 @@ fn skin_detect<I: Image>(i: &I, o: &mut ImageMap) {
 
     for y in 0..h {
         for x in 0..w {
-            let lightness = cie(i.get(x, y)) / 255.0;
+            let lightness = i.get(x, y).cie() / 255.0;
             let skin = skin_col(i.get(x, y));
 
             let nc = if skin > SKIN_THRESHOLD && lightness >= SKIN_BRIGHTNESS_MIN && lightness <= SKIN_BRIGHTNESS_MAX {
@@ -484,7 +489,7 @@ fn saturation_detect<I: Image>(i: &I, o: &mut ImageMap) {
     for y in 0..h {
         for x in 0..w {
             let color = i.get(x, y);
-            let lightness = cie(color) / 255.0;
+            let lightness = color.cie() / 255.0;
             let saturation = color.saturation();
 
             let nc = if saturation > SATURATION_THRESHOLD
