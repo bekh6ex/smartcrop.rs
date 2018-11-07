@@ -32,24 +32,6 @@ pub fn skin_col(c: RGB) -> f64 {
     1.0 - d
 }
 
-pub fn saturation(c: RGB) -> f64 {
-    let maximum = f64::max(f64::max(c.r as f64 / 255.0, c.g as f64 / 255.0), c.b as f64 / 255.0);
-    let minimum = f64::min(f64::min(c.r as f64 / 255.0, c.g as f64 / 255.0), c.b as f64 / 255.0);
-
-
-    if maximum == minimum {
-        return 0.0;
-    }
-
-    let l = (maximum + minimum) / 2.0;
-    let d = maximum - minimum;
-
-    if l > 0.5 {
-        d / (2.0 - maximum - minimum)
-    } else {
-        d / (maximum + minimum)
-    }
-}
 
 pub fn importance(crop: &Crop, x: u32, y: u32) -> f64 {
     if crop.x > x || x >= crop.x + crop.width || crop.y > y || y >= crop.y + crop.height {
@@ -106,16 +88,6 @@ mod tests {
     fn skin_col_test() {
         assert!(skin_col(gray(0)).is_nan());
         assert_eq!(0.7550795306611965, skin_col(gray(255)));
-    }
-
-    #[test]
-    fn saturation_tests() {
-        assert_eq!(0.0, saturation(gray(0)));
-        assert_eq!(0.0, saturation(gray(255)));
-        assert_eq!(1.0, saturation(RGB::new(255, 0, 0)));
-        assert_eq!(1.0, saturation(RGB::new(0, 255, 0)));
-        assert_eq!(1.0, saturation(RGB::new(0, 0, 255)));
-        assert_eq!(1.0, saturation(RGB::new(0, 255, 255)));
     }
 
     #[test]

@@ -82,6 +82,18 @@ impl ResizableImage<TestImage> for TestImage {
     }
 }
 
+
+#[test]
+fn saturation_tests() {
+    assert_eq!(0.0, BLACK.saturation());
+    assert_eq!(0.0, WHITE.saturation());
+    assert_eq!(1.0, RGB::new(255, 0, 0).saturation());
+    assert_eq!(1.0, RGB::new(0, 255, 0).saturation());
+    assert_eq!(1.0, RGB::new(0, 0, 255).saturation());
+    assert_eq!(1.0, RGB::new(0, 255, 255).saturation());
+}
+
+
 #[test]
 fn image_map_test() {
     let mut image_map = ImageMap::new(1, 2);

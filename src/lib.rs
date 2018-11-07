@@ -58,6 +58,26 @@ impl RGB {
     pub fn new(r: u8, g:u8, b:u8) -> RGB {
         RGB{r,g,b}
     }
+
+    pub fn saturation(self: &RGB) -> f64 {
+        let maximum = f64::max(f64::max(self.r as f64 / 255.0, self.g as f64 / 255.0), self.b as f64 / 255.0);
+        let minimum = f64::min(f64::min(self.r as f64 / 255.0, self.g as f64 / 255.0), self.b as f64 / 255.0);
+
+
+        if maximum == minimum {
+            return 0.0;
+        }
+
+        let l = (maximum + minimum) / 2.0;
+        let d = maximum - minimum;
+
+        if l > 0.5 {
+            d / (2.0 - maximum - minimum)
+        } else {
+            d / (maximum + minimum)
+        }
+    }
+
 }
 
 // Score contains values that classify matches
@@ -465,7 +485,7 @@ fn saturation_detect<I: Image>(i: &I, o: &mut ImageMap) {
         for x in 0..w {
             let color = i.get(x, y);
             let lightness = cie(color) / 255.0;
-            let saturation = saturation(color);
+            let saturation = color.saturation();
 
             let nc = if saturation > SATURATION_THRESHOLD
                 && lightness >= SATURATION_BRIGHTNESS_MIN
