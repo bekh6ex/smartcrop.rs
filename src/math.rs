@@ -51,7 +51,7 @@ pub fn saturation(c: RGB) -> f64 {
     }
 }
 
-pub fn kimportance(crop: &Crop, x: u32, y: u32) -> f64 {
+pub fn importance(crop: &Crop, x: u32, y: u32) -> f64 {
     if crop.x > x || x >= crop.x + crop.width || crop.y > y || y >= crop.y + crop.height {
         return OUTSIDE_IMPORTANCE;
     }
