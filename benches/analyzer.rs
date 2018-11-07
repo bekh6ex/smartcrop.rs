@@ -75,9 +75,14 @@ fn bench_find_best_crop(b: &mut Bencher) {
     );
 
     let analyzer = Analyzer::new(CropSettings::default());
+    let eight = std::num::NonZeroU32::new(8).unwrap();
 
     b.iter(|| {
-        analyzer.find_best_crop(&image, 8, 8).unwrap();
+        analyzer.find_best_crop(
+            &image,
+            eight,
+            eight
+        ).unwrap();
     });
 }
 
