@@ -108,39 +108,6 @@ impl ResizableImage<TestImage> for TestImage {
     }
 }
 
-#[derive(Clone, Debug)]
-struct SingleColorImage {
-    w: u32,
-    h: u32,
-    color: RGB,
-}
-
-impl SingleColorImage {
-    fn white(w: u32, h: u32) -> SingleColorImage {
-        SingleColorImage { w, h, color: RGB::new(255, 255, 255) }
-    }
-}
-
-impl Image for SingleColorImage {
-    fn width(&self) -> u32 { self.w }
-
-    fn height(&self) -> u32 { self.h }
-
-    fn get(&self, _x: u32, _y: u32) -> RGB { self.color }
-}
-
-impl ResizableImage<SingleColorImage> for SingleColorImage {
-    fn resize(&self, width: u32, _height: u32) -> SingleColorImage {
-        if width == self.w {
-            return self.clone();
-        }
-
-        let height = (self.h as f64 * width as f64 / self.w as f64).round() as u32;
-
-        SingleColorImage { w: width, h: height, color: self.color }
-    }
-}
-
 #[test]
 fn image_map_test() {
     let mut image_map = ImageMap::new(1, 2);
@@ -365,7 +332,7 @@ fn find_best_crop_wrong_rounding_test() {
 }
 
 #[test]
-fn find_best_crop_zerosized_image_gives_error() {
+fn find_best_crop_zero_sized_image_gives_error() {
     let image = TestImage::new_white(0, 0);
     let analyzer = Analyzer::new(CropSettings::default());
 
@@ -439,12 +406,6 @@ fn result_is_as_in_js() {
     assert_eq!(crop.score.total, -0.030743502919192832);
 }
 
-
-fn white_image(max_dimension: u32) -> BoxedStrategy<SingleColorImage> {
-    (0..max_dimension, 0..max_dimension)
-        .prop_map(|(w, h)| SingleColorImage { w, h, color: RGB::new(255, 255, 255) })
-        .boxed()
-}
 
 fn random_image(max_width: u32, max_height: u32) -> TestImageStrategy {
     TestImageStrategy::new(max_width, max_height)
