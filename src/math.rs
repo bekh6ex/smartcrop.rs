@@ -7,15 +7,6 @@ const EDGE_RADIUS: f64 = 0.4;
 const EDGE_WEIGHT: f64 = -20.0;
 const RULE_OF_THIRDS: bool = true;
 
-pub fn chop(x: f64) -> f64 {
-    if x < 0.0 {
-        x.ceil()
-    } else {
-        x.floor()
-    }
-}
-
-
 // test
 fn thirds(x: f64) -> f64 {
     let x = ((x - (1.0 / 3.0) + 1.0) % 2.0 * 0.5 - 0.5) * 16.0;
@@ -60,7 +51,7 @@ pub fn saturation(c: RGB) -> f64 {
     }
 }
 
-pub fn importance(crop: &Crop, x: u32, y: u32) -> f64 {
+pub fn kimportance(crop: &Crop, x: u32, y: u32) -> f64 {
     if crop.x > x || x >= crop.x + crop.width || crop.y > y || y >= crop.y + crop.height {
         return OUTSIDE_IMPORTANCE;
     }
@@ -89,12 +80,6 @@ mod tests {
 
     fn gray(c: u8) -> RGB {
         RGB::new(c, c, c)
-    }
-
-    #[test]
-    fn chop_test() {
-        assert_eq!(1.0, chop(1.1));
-        assert_eq!(-1.0, chop(-1.1));
     }
 
     #[test]
