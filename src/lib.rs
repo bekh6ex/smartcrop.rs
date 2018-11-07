@@ -1,5 +1,10 @@
-
 #![forbid(unsafe_code)]
+
+#[cfg(test)]
+extern crate rand;
+#[cfg(test)]
+#[macro_use]
+extern crate proptest;
 
 mod math;
 
@@ -81,6 +86,21 @@ impl RGB {
         } else {
             d / (maximum + minimum)
         }
+    }
+
+    pub fn normalize(&self) -> [f64;3] {
+        if self.r == self.g && self.g == self.b {
+            let inv_sqrt_3: f64 = 1.0/3.0f64.sqrt();
+            return [inv_sqrt_3, inv_sqrt_3, inv_sqrt_3];
+        }
+
+        let r = self.r as f64;
+        let g = self.g as f64;
+        let b = self.b as f64;
+
+        let mag = (r.powi(2) + g.powi(2)+ b.powi(2)).sqrt();
+
+        [r / mag, g / mag, b / mag]
     }
 
 }

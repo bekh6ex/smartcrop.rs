@@ -1,7 +1,6 @@
-
 use super::*;
 
-const SKIN_COLOR: [f64; 3] = [0.78, 0.57, 0.44];
+const SKIN_COLOR: RGB = RGB { r: 234, g: 171, b: 132 };
 const OUTSIDE_IMPORTANCE: f64 = -0.5;
 const EDGE_RADIUS: f64 = 0.4;
 const EDGE_WEIGHT: f64 = -20.0;
@@ -18,17 +17,20 @@ pub fn bounds(l: f64) -> u8 {
 }
 
 pub fn skin_col(c: RGB) -> f64 {
-    let r = c.r as f64;
-    let g = c.g as f64;
-    let b = c.b as f64;
-    let mag = (r.powi(2) + g.powi(2)+ b.powi(2)).sqrt();
-    let rd = r / mag - SKIN_COLOR[0];
-    let gd = g / mag - SKIN_COLOR[1];
-    let bd = b / mag - SKIN_COLOR[2];
+    // `K` is needed to avoid breaking BC and make SKIN_COLOR more meaningful
+    const K: f64 = 0.9420138987639984;
 
-    let d = (rd * rd + gd * gd + bd * bd).sqrt();
+    let skin_color: Vec<f64> = SKIN_COLOR.normalize().iter().map(|c| c / K).collect();
 
-    1.0 - d
+    let [r_norm, g_norm, b_norm] = c.normalize();
+
+    let dr = r_norm - skin_color[0];
+    let dg = g_norm - skin_color[1];
+    let db = b_norm - skin_color[2];
+
+    let d = (dr.powi(2) + dg.powi(2) + db.powi(2)).sqrt();
+
+    1.0 - d.min(1.0)
 }
 
 
@@ -58,6 +60,8 @@ pub fn importance(crop: &Crop, x: u32, y: u32) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::strategy::Strategy;
+    use proptest::test_runner::Config;
 
     fn gray(c: u8) -> RGB {
         RGB::new(c, c, c)
@@ -85,8 +89,15 @@ mod tests {
 
     #[test]
     fn skin_col_test() {
-        assert!(skin_col(gray(0)).is_nan());
-        assert_eq!(0.7550795306611965, skin_col(gray(255)));
+        assert_eq!(0.7550795306611966, skin_col(gray(0)));
+        assert_eq!(0.7550795306611966, skin_col(gray(1)));
+        assert_eq!(0.7550795306611966, skin_col(gray(127)));
+        assert_eq!(0.7550795306611966, skin_col(gray(34)));
+        assert_eq!(0.7550795306611966, skin_col(gray(255)));
+        assert_eq!(0.5904611542890027, skin_col(RGB::new(134, 45, 23)));
+        assert_eq!(0.9384288009573658, skin_col(RGB::new(199, 145, 112)));
+        assert_eq!(0.9380840524535538, skin_col(RGB::new(100, 72, 56)));
+        assert_eq!(0.9384445374828501, skin_col(RGB::new(234, 171, 132)));
     }
 
     #[test]
@@ -100,4 +111,19 @@ mod tests {
         );
     }
 
+    fn color() -> impl Strategy<Value=RGB> {
+        (0..=255u8, 0..=255u8, 0..=255u8)
+            .prop_map(|(r, g, b)| RGB{r,g,b})
+    }
+
+    proptest!{
+        #![proptest_config(Config::with_cases(1000))]
+        #[test]
+        fn skin_col_score_is_between_0_and_1(c in color()) {
+            let score = skin_col(c);
+
+            //TODO Change 0.94 to 1.0 when values in formulas are fixed
+            assert!(score >= 0.0 && score <= 0.94);
+        }
+    }
 }
