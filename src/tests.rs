@@ -447,22 +447,6 @@ fn white_image(max_dimension: u32) -> BoxedStrategy<SingleColorImage> {
         .boxed()
 }
 
-fn _random_image(max_width: u32, max_height: u32) -> BoxedStrategy<TestImage> {
-    (1..max_width, 1..max_height)
-        .prop_flat_map(|(w, h)| {
-            let size = (w * h * 3) as usize;
-            let colors = prop::collection::vec(0..256u16, size..(size + 1));
-            (Just(w), Just(h), colors)
-        })
-        .prop_map(|(w, h, c)| {
-            TestImage::new_from_fn(w, h, |x, y| {
-                let i = (x + y * w) as usize;
-                RGB::new(c[i] as u8, c[i + 1] as u8, c[i + 2] as u8)
-            })
-        })
-        .boxed()
-}
-
 fn random_image(max_width: u32, max_height: u32) -> TestImageStrategy {
     TestImageStrategy::new(max_width, max_height)
 }
