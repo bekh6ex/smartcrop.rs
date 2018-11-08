@@ -9,7 +9,7 @@ const RULE_OF_THIRDS: bool = true;
 // test
 fn thirds(x: f64) -> f64 {
     let x = ((x - (1.0 / 3.0) + 1.0) % 2.0 * 0.5 - 0.5) * 16.0;
-    return f64::max(1.0 - x * x, 0.0);
+    f64::max(1.0 - x * x, 0.0)
 }
 
 pub fn bounds(l: f64) -> u8 {
@@ -70,6 +70,14 @@ mod tests {
     #[test]
     fn thirds_test() {
         assert_eq!(0.0, thirds(0.0));
+        assert_eq!(0.0, thirds(0.5));
+        assert_eq!(0.0, thirds(1.0));
+        assert_eq!(1.0, thirds(1.0/3.0));
+        assert_eq!(0.9288888888888889, thirds(0.9/3.0));
+        assert_eq!(0.9288888888888884, thirds(1.1/3.0));
+        assert_eq!(0.7155555555555557, thirds(1.2/3.0));
+        assert_eq!(0.3599999999999989, thirds(1.3/3.0));
+        assert_eq!(0.0, thirds(1.4/3.0));
     }
 
     #[test]
@@ -116,14 +124,29 @@ mod tests {
             .prop_map(|(r, g, b)| RGB{r,g,b})
     }
 
+    fn between_0_and_1() -> impl Strategy<Value=f64> {
+        (0u64..).prop_map(|i| i as f64 / u64::max_value() as f64)
+    }
+
     proptest!{
-        #![proptest_config(Config::with_cases(1000))]
+        #![proptest_config(Config::with_cases(10000))]
         #[test]
         fn skin_col_score_is_between_0_and_1(c in color()) {
             let score = skin_col(c);
 
             //TODO Change 0.94 to 1.0 when values in formulas are fixed
             assert!(score >= 0.0 && score <= 0.94);
+        }
+
+        #[test]
+        fn thirds_result_is_within_defined_boundaries(input in between_0_and_1()) {
+            let result = thirds(input);
+            if input > 0.4583333333333332 || input <= 0.2083333333333334 {
+                assert_eq!(result, 0.0);
+            } else {
+                assert!(result > 0.0);
+                assert!(result <= 1.0);
+            }
         }
     }
 }
