@@ -1,10 +1,10 @@
 extern crate image as image_ext;
 
 use self::image_ext::{FilterType, GenericImage, Pixel, imageops, ImageBuffer};
-use RGB;
-use Image;
+use super::RGB;
+use super::Image;
 use std;
-use ResizableImage;
+use super::ResizableImage;
 
 impl<I, P> Image for I
     where I: GenericImage<Pixel=P> + 'static,

@@ -4,6 +4,7 @@ description="Clone of smartcrop library in JavaScript"
 repository="https://github.com/bekh6ex/rust-smartcrop"
 license="MIT"
 version = "0.1.0"
+edition = "2018"
 authors = ["Aleksey Bekh-Ivanov <6ex@mail.ru>"]
 include = [
     "src/*.rs",
