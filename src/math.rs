@@ -1,6 +1,10 @@
 use super::*;
 
-const SKIN_COLOR: RGB = RGB { r: 234, g: 171, b: 132 };
+const SKIN_COLOR: RGB = RGB {
+    r: 234,
+    g: 171,
+    b: 132,
+};
 const OUTSIDE_IMPORTANCE: f64 = -0.5;
 const EDGE_RADIUS: f64 = 0.4;
 const EDGE_WEIGHT: f64 = -20.0;
@@ -32,7 +36,6 @@ pub fn skin_col(c: RGB) -> f64 {
 
     1.0 - d.min(1.0)
 }
-
 
 pub fn importance(crop: &Crop, x: u32, y: u32) -> f64 {
     if crop.x > x || x >= crop.x + crop.width || crop.y > y || y >= crop.y + crop.height {
@@ -72,12 +75,12 @@ mod tests {
         assert_eq!(0.0, thirds(0.0));
         assert_eq!(0.0, thirds(0.5));
         assert_eq!(0.0, thirds(1.0));
-        assert_eq!(1.0, thirds(1.0/3.0));
-        assert_eq!(0.9288888888888889, thirds(0.9/3.0));
-        assert_eq!(0.9288888888888884, thirds(1.1/3.0));
-        assert_eq!(0.7155555555555557, thirds(1.2/3.0));
-        assert_eq!(0.3599999999999989, thirds(1.3/3.0));
-        assert_eq!(0.0, thirds(1.4/3.0));
+        assert_eq!(1.0, thirds(1.0 / 3.0));
+        assert_eq!(0.9288888888888889, thirds(0.9 / 3.0));
+        assert_eq!(0.9288888888888884, thirds(1.1 / 3.0));
+        assert_eq!(0.7155555555555557, thirds(1.2 / 3.0));
+        assert_eq!(0.3599999999999989, thirds(1.3 / 3.0));
+        assert_eq!(0.0, thirds(1.4 / 3.0));
     }
 
     #[test]
@@ -113,22 +116,27 @@ mod tests {
         assert_eq!(
             -6.404213562373096,
             importance(
-                &Crop { x: 0, y: 0, width: 1, height: 1 },
+                &Crop {
+                    x: 0,
+                    y: 0,
+                    width: 1,
+                    height: 1
+                },
                 0,
-                0)
+                0
+            )
         );
     }
 
-    fn color() -> impl Strategy<Value=RGB> {
-        (0..=255u8, 0..=255u8, 0..=255u8)
-            .prop_map(|(r, g, b)| RGB{r,g,b})
+    fn color() -> impl Strategy<Value = RGB> {
+        (0..=255u8, 0..=255u8, 0..=255u8).prop_map(|(r, g, b)| RGB { r, g, b })
     }
 
-    fn between_0_and_1() -> impl Strategy<Value=f64> {
+    fn between_0_and_1() -> impl Strategy<Value = f64> {
         (0u64..).prop_map(|i| i as f64 / u64::max_value() as f64)
     }
 
-    proptest!{
+    proptest! {
         #![proptest_config(Config::with_cases(10000))]
         #[test]
         fn skin_col_score_is_between_0_and_1(c in color()) {

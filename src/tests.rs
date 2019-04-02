@@ -3,12 +3,20 @@ use super::*;
 // All the "unobvious" numbers in tests were acquired by running same code in smartcrop.js
 // Used smartcrop.js commit: 623d271ad8faf24d78f9364fcc86b5132a368576
 
-const WHITE: RGB = RGB { r: 255, g: 255, b: 255 };
+const WHITE: RGB = RGB {
+    r: 255,
+    g: 255,
+    b: 255,
+};
 const BLACK: RGB = RGB { r: 0, g: 0, b: 0 };
 const RED: RGB = RGB { r: 255, g: 0, b: 0 };
 const GREEN: RGB = RGB { r: 0, g: 255, b: 0 };
 const BLUE: RGB = RGB { r: 0, g: 0, b: 255 };
-const SKIN: RGB = RGB { r: 255, g: 200, b: 159 };
+const SKIN: RGB = RGB {
+    r: 255,
+    g: 200,
+    b: 159,
+};
 
 #[derive(Debug, Clone)]
 struct TestImage {
@@ -23,11 +31,17 @@ impl TestImage {
     }
 
     fn new_single_pixel(pixel: RGB) -> TestImage {
-        TestImage { w: 1, h: 1, pixels: vec![vec![pixel]] }
+        TestImage {
+            w: 1,
+            h: 1,
+            pixels: vec![vec![pixel]],
+        }
     }
 
     fn new_from_fn<G>(w: u32, h: u32, generate: G) -> TestImage
-        where G: Fn(u32, u32) -> RGB {
+    where
+        G: Fn(u32, u32) -> RGB,
+    {
         let mut pixels = vec![vec![WHITE; h as usize]; w as usize];
 
         for y in 0..h {
@@ -78,10 +92,13 @@ impl ResizableImage<TestImage> for TestImage {
         let height = (self.h as f64 * width as f64 / self.w as f64).round() as u32;
 
         //TODO Implement more or less correct resizing
-        return TestImage { w: width, h: height, pixels: self.pixels.clone() };
+        return TestImage {
+            w: width,
+            h: height,
+            pixels: self.pixels.clone(),
+        };
     }
 }
-
 
 #[test]
 fn saturation_tests() {
@@ -92,7 +109,6 @@ fn saturation_tests() {
     assert_eq!(1.0, RGB::new(0, 0, 255).saturation());
     assert_eq!(1.0, RGB::new(0, 255, 255).saturation());
 }
-
 
 #[test]
 fn image_map_test() {
@@ -119,7 +135,15 @@ fn crops_test() {
 
     let crops = crops(&ImageMap::new(8, 8), 8, 8, real_min_scale);
 
-    assert_eq!(crops[0], Crop { x: 0, y: 0, width: 8, height: 8 })
+    assert_eq!(
+        crops[0],
+        Crop {
+            x: 0,
+            y: 0,
+            width: 8,
+            height: 8
+        }
+    )
 }
 
 #[test]
@@ -127,9 +151,25 @@ fn score_test_image_with_single_black_pixel_then_score_is_zero() {
     let mut i = ImageMap::new(1, 1);
     i.set(0, 0, RGB::new(0, 0, 0));
 
-    let s = score(&i, &Crop { x: 0, y: 0, width: 1, height: 1 });
+    let s = score(
+        &i,
+        &Crop {
+            x: 0,
+            y: 0,
+            width: 1,
+            height: 1,
+        },
+    );
 
-    assert_eq!(s, Score { detail: 0.0, saturation: 0.0, skin: 0.0, total: 0.0 });
+    assert_eq!(
+        s,
+        Score {
+            detail: 0.0,
+            saturation: 0.0,
+            skin: 0.0,
+            total: 0.0
+        }
+    );
 }
 
 #[test]
@@ -137,7 +177,15 @@ fn score_test_image_with_single_white_pixel_then_score_is_the_same_as_for_js_ver
     let mut i = ImageMap::new(1, 1);
     i.set(0, 0, RGB::new(255, 255, 255));
 
-    let s = score(&i, &Crop { x: 0, y: 0, width: 1, height: 1 });
+    let s = score(
+        &i,
+        &Crop {
+            x: 0,
+            y: 0,
+            width: 1,
+            height: 1,
+        },
+    );
 
     let js_version_score = Score {
         detail: -6.404213562373096,
@@ -203,15 +251,64 @@ fn edge_detect_3x3() {
 
     edge_detect(&image, &mut o);
 
-    assert_eq!(o.get(0, 0), RGB { r: 255, g: 18, b: 0 });
-    assert_eq!(o.get(0, 0), RGB { r: 255, g: 18, b: 0 });
+    assert_eq!(
+        o.get(0, 0),
+        RGB {
+            r: 255,
+            g: 18,
+            b: 0
+        }
+    );
+    assert_eq!(
+        o.get(0, 0),
+        RGB {
+            r: 255,
+            g: 18,
+            b: 0
+        }
+    );
     assert_eq!(o.get(1, 0), RGB { r: 0, g: 182, b: 0 });
-    assert_eq!(o.get(2, 0), RGB { r: 0, g: 131, b: 255 });
+    assert_eq!(
+        o.get(2, 0),
+        RGB {
+            r: 0,
+            g: 131,
+            b: 255
+        }
+    );
     assert_eq!(o.get(0, 1), RGB { r: 0, g: 182, b: 0 });
-    assert_eq!(o.get(1, 1), RGB { r: 0, g: 121, b: 255 });
-    assert_eq!(o.get(2, 1), RGB { r: 255, g: 18, b: 0 });
-    assert_eq!(o.get(0, 2), RGB { r: 0, g: 131, b: 255 });
-    assert_eq!(o.get(1, 2), RGB { r: 255, g: 18, b: 0 });
+    assert_eq!(
+        o.get(1, 1),
+        RGB {
+            r: 0,
+            g: 121,
+            b: 255
+        }
+    );
+    assert_eq!(
+        o.get(2, 1),
+        RGB {
+            r: 255,
+            g: 18,
+            b: 0
+        }
+    );
+    assert_eq!(
+        o.get(0, 2),
+        RGB {
+            r: 0,
+            g: 131,
+            b: 255
+        }
+    );
+    assert_eq!(
+        o.get(1, 2),
+        RGB {
+            r: 255,
+            g: 18,
+            b: 0
+        }
+    );
     assert_eq!(o.get(2, 2), RGB { r: 0, g: 182, b: 0 });
 }
 
@@ -230,37 +327,75 @@ fn saturation_detect_3x3() {
 
     saturation_detect(&image, &mut o);
 
-    assert_eq!(o.get(0, 0), RGB { r: 255, g: 0, b: 255 });
-    assert_eq!(o.get(0, 1), RGB { r: 0, g: 255, b: 255 });
+    assert_eq!(
+        o.get(0, 0),
+        RGB {
+            r: 255,
+            g: 0,
+            b: 255
+        }
+    );
+    assert_eq!(
+        o.get(0, 1),
+        RGB {
+            r: 0,
+            g: 255,
+            b: 255
+        }
+    );
     assert_eq!(o.get(0, 2), RGB { r: 0, g: 0, b: 255 });
-    assert_eq!(o.get(1, 0), RGB { r: 255, g: 255, b: 0 });
-    assert_eq!(o.get(1, 1), RGB { r: 255, g: 200, b: 0 });
+    assert_eq!(
+        o.get(1, 0),
+        RGB {
+            r: 255,
+            g: 255,
+            b: 0
+        }
+    );
+    assert_eq!(
+        o.get(1, 1),
+        RGB {
+            r: 255,
+            g: 200,
+            b: 0
+        }
+    );
     assert_eq!(o.get(1, 2), RGB { r: 0, g: 0, b: 0 });
     assert_eq!(o.get(2, 0), RGB { r: 0, g: 0, b: 255 });
-    assert_eq!(o.get(2, 1), RGB { r: 255, g: 0, b: 255 });
-    assert_eq!(o.get(2, 2), RGB { r: 0, g: 255, b: 255 });
+    assert_eq!(
+        o.get(2, 1),
+        RGB {
+            r: 255,
+            g: 0,
+            b: 255
+        }
+    );
+    assert_eq!(
+        o.get(2, 2),
+        RGB {
+            r: 0,
+            g: 255,
+            b: 255
+        }
+    );
 }
 
 #[test]
 fn analyze_test() {
-    let image = TestImage::new_from_fn(
-        24,
-        24,
-        |x, y| {
-            if x >= 8 && x < 16 && y >= 8 && y < 16 {
-                SKIN
-            } else {
-                WHITE
-            }
-        },
-    );
+    let image = TestImage::new_from_fn(24, 24, |x, y| {
+        if x >= 8 && x < 16 && y >= 8 && y < 16 {
+            SKIN
+        } else {
+            WHITE
+        }
+    });
 
     let crop = analyse(
         &CropSettings::default(),
         &image,
         NonZeroU32::new(8).unwrap(),
         NonZeroU32::new(8).unwrap(),
-        1.0
+        1.0,
     );
 
     assert_eq!(crop.crop.width, 8);
@@ -272,7 +407,6 @@ fn analyze_test() {
     assert_eq!(crop.score.skin, -0.03993215515362048);
     assert_eq!(crop.score.total, -0.006637797746048519);
 }
-
 
 #[test]
 fn crop_scale_test() {

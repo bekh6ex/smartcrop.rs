@@ -9,8 +9,16 @@ use std::num::NonZeroU32;
 // All the "unobvious" numbers in tests were acquired by running same code in smartcrop.js
 // Used smartcrop.js commit: 623d271ad8faf24d78f9364fcc86b5132a368576
 
-const WHITE: RGB = RGB { r: 255, g: 255, b: 255 };
-const SKIN: RGB = RGB { r: 255, g: 200, b: 159 };
+const WHITE: RGB = RGB {
+    r: 255,
+    g: 255,
+    b: 255,
+};
+const SKIN: RGB = RGB {
+    r: 255,
+    g: 200,
+    b: 159,
+};
 
 #[derive(Debug, Clone)]
 struct TestImage {
@@ -21,7 +29,9 @@ struct TestImage {
 
 impl TestImage {
     fn new_from_fn<G>(w: u32, h: u32, generate: G) -> TestImage
-        where G: Fn(u32, u32) -> RGB {
+    where
+        G: Fn(u32, u32) -> RGB,
+    {
         let mut pixels = vec![vec![WHITE; h as usize]; w as usize];
 
         for y in 0..h {
@@ -77,28 +87,34 @@ impl ResizableImage<TestImage> for TestImage {
         let height = (self.h as f64 * width as f64 / self.w as f64).round() as u32;
 
         //TODO Implement more or less correct resizing
-        return TestImage { w: width, h: height, pixels: self.pixels.clone() };
+        return TestImage {
+            w: width,
+            h: height,
+            pixels: self.pixels.clone(),
+        };
     }
 }
 
 #[test]
 fn find_best_crop_test() {
-    let image = TestImage::new_from_fn(
-        24,
-        8,
-        |x, _| {
-            if x < 9 {
-                RGB { r: 0, g: 255, b: 0 }
-            } else if x < 16 {
-                SKIN
-            } else {
-                WHITE
-            }
-        },
-    );
+    let image = TestImage::new_from_fn(24, 8, |x, _| {
+        if x < 9 {
+            RGB { r: 0, g: 255, b: 0 }
+        } else if x < 16 {
+            SKIN
+        } else {
+            WHITE
+        }
+    });
     let analyzer = Analyzer::new(CropSettings::default());
 
-    let crop = analyzer.find_best_crop(&image, NonZeroU32::new(8).unwrap(), NonZeroU32::new(8).unwrap()).unwrap();
+    let crop = analyzer
+        .find_best_crop(
+            &image,
+            NonZeroU32::new(8).unwrap(),
+            NonZeroU32::new(8).unwrap(),
+        )
+        .unwrap();
 
     assert_eq!(crop.crop.width, 8);
     assert_eq!(crop.crop.height, 8);
@@ -112,14 +128,16 @@ fn find_best_crop_test() {
 
 #[test]
 fn find_best_crop_wrong_rounding_test() {
-    let image = TestImage::new_from_fn(
-        640,
-        426,
-        |_, _| { WHITE },
-    );
+    let image = TestImage::new_from_fn(640, 426, |_, _| WHITE);
     let analyzer = Analyzer::new(CropSettings::default());
 
-    let crop = analyzer.find_best_crop(&image, NonZeroU32::new(10).unwrap(), NonZeroU32::new(10).unwrap()).unwrap();
+    let crop = analyzer
+        .find_best_crop(
+            &image,
+            NonZeroU32::new(10).unwrap(),
+            NonZeroU32::new(10).unwrap(),
+        )
+        .unwrap();
 
     assert_eq!(crop.crop.width, 426);
     assert_eq!(crop.crop.height, 426);
@@ -130,7 +148,11 @@ fn find_best_crop_zero_sized_image_gives_error() {
     let image = TestImage::new_white(0, 0);
     let analyzer = Analyzer::new(CropSettings::default());
 
-    let result = analyzer.find_best_crop(&image, NonZeroU32::new(1).unwrap(), NonZeroU32::new(1).unwrap());
+    let result = analyzer.find_best_crop(
+        &image,
+        NonZeroU32::new(1).unwrap(),
+        NonZeroU32::new(1).unwrap(),
+    );
 
     assert_eq!(Error::ZeroSizedImage, result.unwrap_err());
 }
@@ -141,27 +163,344 @@ fn find_best_crop_on_tiny_image_should_not_panic() {
     let image = TestImage::new_white(1, 1);
     let analyzer = Analyzer::new(CropSettings::default());
 
-    let _ = analyzer.find_best_crop(&image, NonZeroU32::new(1).unwrap(), NonZeroU32::new(1).unwrap());
+    let _ = analyzer.find_best_crop(
+        &image,
+        NonZeroU32::new(1).unwrap(),
+        NonZeroU32::new(1).unwrap(),
+    );
 }
-
 
 #[test]
 fn result_is_as_in_js() {
-    let image = TestImage { w: 8, h: 8, pixels: vec![vec![RGB { r: 83, g: 83, b: 216 }, RGB { r: 0, g: 229, b: 177 }, RGB { r: 58, g: 199, b: 58 }, RGB { r: 60, g: 56, b: 26 }, RGB { r: 0, g: 217, b: 145 }, RGB { r: 13, g: 13, b: 82 }, RGB { r: 56, g: 222, b: 56 }, RGB { r: 249, g: 62, b: 62 }], vec![RGB { r: 49, g: 49, b: 146 }, RGB { r: 0, g: 0, b: 0 }, RGB { r: 45, g: 26, b: 20 }, RGB { r: 0, g: 167, b: 215 }, RGB { r: 185, g: 44, b: 44 }, RGB { r: 221, g: 172, b: 172 }, RGB { r: 153, g: 132, b: 66 }, RGB { r: 72, g: 250, b: 72 }], vec![RGB { r: 13, g: 199, b: 13 }, RGB { r: 188, g: 42, b: 3 }, RGB { r: 41, g: 153, b: 41 }, RGB { r: 0, g: 152, b: 236 }, RGB { r: 3, g: 3, b: 143 }, RGB { r: 34, g: 121, b: 34 }, RGB { r: 243, g: 66, b: 66 }, RGB { r: 188, g: 1, b: 1 }], vec![RGB { r: 64, g: 196, b: 175 }, RGB { r: 180, g: 177, b: 127 }, RGB { r: 58, g: 58, b: 253 }, RGB { r: 117, g: 24, b: 24 }, RGB { r: 62, g: 192, b: 62 }, RGB { r: 70, g: 70, b: 204 }, RGB { r: 152, g: 10, b: 10 }, RGB { r: 41, g: 41, b: 149 }], vec![RGB { r: 122, g: 117, b: 2 }, RGB { r: 92, g: 210, b: 192 }, RGB { r: 66, g: 229, b: 66 }, RGB { r: 0, g: 0, b: 0 }, RGB { r: 73, g: 28, b: 28 }, RGB { r: 213, g: 95, b: 95 }, RGB { r: 195, g: 33, b: 33 }, RGB { r: 43, g: 24, b: 19 }], vec![RGB { r: 76, g: 35, b: 41 }, RGB { r: 184, g: 241, b: 100 }, RGB { r: 40, g: 40, b: 251 }, RGB { r: 65, g: 65, b: 28 }, RGB { r: 21, g: 18, b: 9 }, RGB { r: 32, g: 174, b: 32 }, RGB { r: 69, g: 27, b: 27 }, RGB { r: 223, g: 115, b: 115 }], vec![RGB { r: 152, g: 177, b: 197 }, RGB { r: 0, g: 0, b: 74 }, RGB { r: 33, g: 150, b: 33 }, RGB { r: 0, g: 184, b: 191 }, RGB { r: 15, g: 70, b: 15 }, RGB { r: 48, g: 40, b: 21 }, RGB { r: 21, g: 21, b: 138 }, RGB { r: 64, g: 162, b: 64 }], vec![RGB { r: 0, g: 38, b: 194 }, RGB { r: 32, g: 138, b: 32 }, RGB { r: 90, g: 7, b: 3 }, RGB { r: 86, g: 86, b: 234 }, RGB { r: 59, g: 51, b: 26 }, RGB { r: 51, g: 51, b: 22 }, RGB { r: 39, g: 39, b: 96 }, RGB { r: 59, g: 54, b: 26 }]] };
+    let image = TestImage {
+        w: 8,
+        h: 8,
+        pixels: vec![
+            vec![
+                RGB {
+                    r: 83,
+                    g: 83,
+                    b: 216,
+                },
+                RGB {
+                    r: 0,
+                    g: 229,
+                    b: 177,
+                },
+                RGB {
+                    r: 58,
+                    g: 199,
+                    b: 58,
+                },
+                RGB {
+                    r: 60,
+                    g: 56,
+                    b: 26,
+                },
+                RGB {
+                    r: 0,
+                    g: 217,
+                    b: 145,
+                },
+                RGB {
+                    r: 13,
+                    g: 13,
+                    b: 82,
+                },
+                RGB {
+                    r: 56,
+                    g: 222,
+                    b: 56,
+                },
+                RGB {
+                    r: 249,
+                    g: 62,
+                    b: 62,
+                },
+            ],
+            vec![
+                RGB {
+                    r: 49,
+                    g: 49,
+                    b: 146,
+                },
+                RGB { r: 0, g: 0, b: 0 },
+                RGB {
+                    r: 45,
+                    g: 26,
+                    b: 20,
+                },
+                RGB {
+                    r: 0,
+                    g: 167,
+                    b: 215,
+                },
+                RGB {
+                    r: 185,
+                    g: 44,
+                    b: 44,
+                },
+                RGB {
+                    r: 221,
+                    g: 172,
+                    b: 172,
+                },
+                RGB {
+                    r: 153,
+                    g: 132,
+                    b: 66,
+                },
+                RGB {
+                    r: 72,
+                    g: 250,
+                    b: 72,
+                },
+            ],
+            vec![
+                RGB {
+                    r: 13,
+                    g: 199,
+                    b: 13,
+                },
+                RGB {
+                    r: 188,
+                    g: 42,
+                    b: 3,
+                },
+                RGB {
+                    r: 41,
+                    g: 153,
+                    b: 41,
+                },
+                RGB {
+                    r: 0,
+                    g: 152,
+                    b: 236,
+                },
+                RGB { r: 3, g: 3, b: 143 },
+                RGB {
+                    r: 34,
+                    g: 121,
+                    b: 34,
+                },
+                RGB {
+                    r: 243,
+                    g: 66,
+                    b: 66,
+                },
+                RGB { r: 188, g: 1, b: 1 },
+            ],
+            vec![
+                RGB {
+                    r: 64,
+                    g: 196,
+                    b: 175,
+                },
+                RGB {
+                    r: 180,
+                    g: 177,
+                    b: 127,
+                },
+                RGB {
+                    r: 58,
+                    g: 58,
+                    b: 253,
+                },
+                RGB {
+                    r: 117,
+                    g: 24,
+                    b: 24,
+                },
+                RGB {
+                    r: 62,
+                    g: 192,
+                    b: 62,
+                },
+                RGB {
+                    r: 70,
+                    g: 70,
+                    b: 204,
+                },
+                RGB {
+                    r: 152,
+                    g: 10,
+                    b: 10,
+                },
+                RGB {
+                    r: 41,
+                    g: 41,
+                    b: 149,
+                },
+            ],
+            vec![
+                RGB {
+                    r: 122,
+                    g: 117,
+                    b: 2,
+                },
+                RGB {
+                    r: 92,
+                    g: 210,
+                    b: 192,
+                },
+                RGB {
+                    r: 66,
+                    g: 229,
+                    b: 66,
+                },
+                RGB { r: 0, g: 0, b: 0 },
+                RGB {
+                    r: 73,
+                    g: 28,
+                    b: 28,
+                },
+                RGB {
+                    r: 213,
+                    g: 95,
+                    b: 95,
+                },
+                RGB {
+                    r: 195,
+                    g: 33,
+                    b: 33,
+                },
+                RGB {
+                    r: 43,
+                    g: 24,
+                    b: 19,
+                },
+            ],
+            vec![
+                RGB {
+                    r: 76,
+                    g: 35,
+                    b: 41,
+                },
+                RGB {
+                    r: 184,
+                    g: 241,
+                    b: 100,
+                },
+                RGB {
+                    r: 40,
+                    g: 40,
+                    b: 251,
+                },
+                RGB {
+                    r: 65,
+                    g: 65,
+                    b: 28,
+                },
+                RGB { r: 21, g: 18, b: 9 },
+                RGB {
+                    r: 32,
+                    g: 174,
+                    b: 32,
+                },
+                RGB {
+                    r: 69,
+                    g: 27,
+                    b: 27,
+                },
+                RGB {
+                    r: 223,
+                    g: 115,
+                    b: 115,
+                },
+            ],
+            vec![
+                RGB {
+                    r: 152,
+                    g: 177,
+                    b: 197,
+                },
+                RGB { r: 0, g: 0, b: 74 },
+                RGB {
+                    r: 33,
+                    g: 150,
+                    b: 33,
+                },
+                RGB {
+                    r: 0,
+                    g: 184,
+                    b: 191,
+                },
+                RGB {
+                    r: 15,
+                    g: 70,
+                    b: 15,
+                },
+                RGB {
+                    r: 48,
+                    g: 40,
+                    b: 21,
+                },
+                RGB {
+                    r: 21,
+                    g: 21,
+                    b: 138,
+                },
+                RGB {
+                    r: 64,
+                    g: 162,
+                    b: 64,
+                },
+            ],
+            vec![
+                RGB {
+                    r: 0,
+                    g: 38,
+                    b: 194,
+                },
+                RGB {
+                    r: 32,
+                    g: 138,
+                    b: 32,
+                },
+                RGB { r: 90, g: 7, b: 3 },
+                RGB {
+                    r: 86,
+                    g: 86,
+                    b: 234,
+                },
+                RGB {
+                    r: 59,
+                    g: 51,
+                    b: 26,
+                },
+                RGB {
+                    r: 51,
+                    g: 51,
+                    b: 22,
+                },
+                RGB {
+                    r: 39,
+                    g: 39,
+                    b: 96,
+                },
+                RGB {
+                    r: 59,
+                    g: 54,
+                    b: 26,
+                },
+            ],
+        ],
+    };
 
     let crop_w = NonZeroU32::new(1).unwrap();
     let crop_h = NonZeroU32::new(1).unwrap();
 
     let analyzer = Analyzer::new(CropSettings::default());
 
-    let crop = analyzer.find_best_crop(&image, crop_w, crop_h).expect("Failed to find crop");
+    let crop = analyzer
+        .find_best_crop(&image, crop_w, crop_h)
+        .expect("Failed to find crop");
 
     assert_eq!(crop.score.detail, -3.7420698854650642);
     assert_eq!(crop.score.saturation, -1.713699592238245);
     assert_eq!(crop.score.skin, -0.5821112502841688);
     assert_eq!(crop.score.total, -0.030743502919192832);
 }
-
 
 #[test]
 fn crop_is_within_the_image_boundaries_prop_test_found_case() {
@@ -212,35 +551,34 @@ mod property_testing {
     use smartcrop::*;
     use std::num::NonZeroU32;
 
+    use self::Side::*;
+    use self::Simplification::*;
+    use super::*;
     use proptest::prelude::*;
     use proptest::strategy::ValueTree;
     use proptest::test_runner::{Reason, TestRunner};
     use rand::distributions::Distribution;
-    use self::Side::*;
-    use self::Simplification::*;
-    use super::*;
 
     fn random_image(max_width: u32, max_height: u32) -> TestImageStrategy {
         TestImageStrategy::new(max_width, max_height)
     }
 
-
     proptest! {
-    #[test]
-    fn crop_is_within_the_image_boundaries(
-        ref image in random_image(600, 600),
-        crop_w in 1u32..,
-        crop_h in 1u32..
-    ) {
-        let analyzer = Analyzer::new(CropSettings::default());
+        #[test]
+        fn crop_is_within_the_image_boundaries(
+            ref image in random_image(600, 600),
+            crop_w in 1u32..,
+            crop_h in 1u32..
+        ) {
+            let analyzer = Analyzer::new(CropSettings::default());
 
-        let result = analyzer.find_best_crop(image, NonZeroU32::new(crop_w).unwrap(), NonZeroU32::new(crop_h).unwrap());
+            let result = analyzer.find_best_crop(image, NonZeroU32::new(crop_w).unwrap(), NonZeroU32::new(crop_h).unwrap());
 
-        let crop = result.unwrap().crop;
-        assert!(crop.x + crop.width <= image.width());
-        assert!(crop.y + crop.height <= image.height());
+            let crop = result.unwrap().crop;
+            assert!(crop.x + crop.width <= image.width());
+            assert!(crop.y + crop.height <= image.height());
+        }
     }
-}
 
     #[derive(Debug)]
     struct TestImageStrategy {
@@ -270,9 +608,9 @@ mod property_testing {
                     let g = runner.rng().gen();
                     let b = runner.rng().gen();
                     column.push(RGB { r, g, b });
-                };
+                }
                 pixels.push(column);
-            };
+            }
             let image = TestImage { w, h, pixels };
 
             Ok(TestImageValueTree::new(image))
@@ -396,7 +734,7 @@ mod property_testing {
                         new_image.pixels[x as usize][y as usize] = RGB { r: 0, g: 0, b: 0 };
                         new_image
                     }
-                    _ => unimplemented!()
+                    _ => unimplemented!(),
                 }
             };
 

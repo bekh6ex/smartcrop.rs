@@ -1,16 +1,16 @@
 extern crate image as image_ext;
 
-use self::image_ext::{FilterType, GenericImage, Pixel, imageops, ImageBuffer};
-use super::RGB;
+use self::image_ext::{imageops, FilterType, GenericImage, ImageBuffer, Pixel};
 use super::Image;
-use std;
 use super::ResizableImage;
+use super::RGB;
+use std;
 
 impl<I, P> Image for I
-    where I: GenericImage<Pixel=P> + 'static,
-          P: Pixel<Subpixel=u8> + 'static {
-
-
+where
+    I: GenericImage<Pixel = P> + 'static,
+    P: Pixel<Subpixel = u8> + 'static,
+{
     fn width(&self) -> u32 {
         GenericImage::width(self)
     }
@@ -25,14 +25,15 @@ impl<I, P> Image for I
         let r = px[0];
         let g = px[1];
         let b = px[2];
-        RGB{r,g,b}
+        RGB { r, g, b }
     }
 }
 
 impl<I, P> ResizableImage<ImageBuffer<P, std::vec::Vec<u8>>> for I
-    where I: GenericImage<Pixel=P> + 'static,
-          P: Pixel<Subpixel=u8> + 'static {
-
+where
+    I: GenericImage<Pixel = P> + 'static,
+    P: Pixel<Subpixel = u8> + 'static,
+{
     fn resize(&self, width: u32, height: u32) -> ImageBuffer<P, std::vec::Vec<u8>> {
         imageops::resize(self, width, height, FilterType::Lanczos3)
     }
